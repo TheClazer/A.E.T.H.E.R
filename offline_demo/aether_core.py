@@ -18,16 +18,25 @@ vision aid, on the segment-RPE quantity DP7 grades. See docs/AETHER_BIBLE.pdf.
 """
 from __future__ import annotations
 import numpy as np
-from scipy.stats import chi2
+
+# scipy is used to *derive* the integrity constants; if it's unavailable at runtime
+# (e.g. a very new Python where no scipy wheel exists yet) we fall back to the audited
+# values. The ROS2 node therefore needs only numpy. Re-derive: verify_constants.py.
+try:
+    from scipy.stats import chi2
+    _HAVE_SCIPY = True
+except Exception:  # pragma: no cover
+    chi2 = None
+    _HAVE_SCIPY = False
 
 # --------------------------------------------------------------------------
 # Audited protection-level k-factors.  Reproduce with offline_demo/verify_constants.py
 # --------------------------------------------------------------------------
 # Operational bound: 95% containment of a 2-D (horizontal) Gaussian error.
-K_OP: float = float(np.sqrt(chi2.ppf(0.95, 2)))               # ~= 2.4477
+K_OP: float = float(np.sqrt(chi2.ppf(0.95, 2))) if _HAVE_SCIPY else 2.4477
 # DAL-C "as-if" bound: DO-178C integrity-risk allocation P_HMI = 1e-5/hr at 20 Hz
 # -> per-sample exceedance 1.39e-10 -> a deliberately conservative envelope.
-K_DALC: float = float(np.sqrt(chi2.ppf(1.0 - 1.39e-10, 2)))   # ~= 6.74
+K_DALC: float = float(np.sqrt(chi2.ppf(1.0 - 1.39e-10, 2))) if _HAVE_SCIPY else 6.7374
 # Missed-detection non-centrality used in the (offline/stretch) RAIM-slope bound.
 LAMBDA_MD: float = 45.0
 
@@ -72,8 +81,10 @@ def nees(err_xyz, p_pos: np.ndarray) -> float:
 
 def nees_gate(conf: float = 0.95, dim: int = 3) -> tuple[float, float]:
     """Two-sided chi-square acceptance band for a consistent filter (E[NEES] = dim)."""
-    lo, hi = chi2.interval(conf, dim)
-    return float(lo), float(hi)
+    if _HAVE_SCIPY:
+        lo, hi = chi2.interval(conf, dim)
+        return float(lo), float(hi)
+    return (0.216, 9.348)  # chi2.interval(0.95, 3), audited fallback
 
 
 def trust_score(n_feat: float, trace_pos: float,

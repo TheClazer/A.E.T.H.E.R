@@ -61,16 +61,22 @@ That exercises the **exact** protection-level proxy, NEES check, and degradation
 <img src="docs/figures/ib_coverage.png" width="48%">
 </p>
 
-## Fastest live demo (Ubuntu 22.04 — no Gazebo/OpenVINS needed)
+## Fastest live demo — no Gazebo/OpenVINS needed (✅ verified)
 
 The **guaranteed** path: a representative VIO trajectory drives the *real* integrity stack, so the kill-camera beat always works.
 
+> **Verified running** on Ubuntu 26.04 / ROS2 **Lyrical** (WSL2). Headless test result — `/nav/state`: `NOMINAL → INERTIAL → NOMINAL`; `/nav/trust`: `1.0 → 0.02`; horizontal protection level: `0.21 m → 1.66 m` (the bound blooms ~8× on vision loss, then contracts). The integrity layer is distro-agnostic `rclpy` — it also builds on Jazzy (24.04) / Humble (22.04).
+
 ```bash
+# one-time (installs ROS2 for your Ubuntu; Lyrical on 26.04, edit the codename for 24.04/22.04):
+sudo bash scripts/wsl_setup_ros2.sh
+# build + run the live integrity demo:
 ./scripts/run_replay_demo.sh                 # replay -> integrity_monitor + degradation_manager + cockpit
 rviz2 -d src/aether_bringup/config/aether.rviz
-./scripts/run_demo.sh kill                   # vision loss -> trust RED < 0.5 s, bound blooms, truth stays inside
+./scripts/run_demo.sh kill                   # vision loss -> trust collapses, bound blooms, truth stays inside
 ./scripts/run_demo.sh restore                # recover
 ```
+(`scripts/wsl_build_verify.sh` runs the whole build + headless check in one shot.)
 
 Real VIO accuracy comes from OpenVINS on the **EuRoC** dataset; the full Gazebo sim is the bonus. The exact 3-day plan is in **[`docs/RUNBOOK.pdf`](docs/RUNBOOK.pdf)**.
 

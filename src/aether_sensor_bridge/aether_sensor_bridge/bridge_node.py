@@ -45,7 +45,7 @@ class SensorBridge(Node):
     def on_kill(self, req, resp):
         self.camera_dead = bool(req.enable)
         state = 'DEAD' if self.camera_dead else 'LIVE'
-        self.get_logger().warn(f'/kill_camera -> camera {state}')
+        self.get_logger().warning(f'/kill_camera -> camera {state}')
         resp.acknowledged = True
         return resp
 

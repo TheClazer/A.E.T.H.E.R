@@ -51,7 +51,7 @@ class ReplayNode(Node):
     def on_kill(self, req, resp):
         self.killed = bool(req.enable)
         self.t_kill = self.now() if self.killed else None
-        self.get_logger().warn('VISION ' + ('LOST (dead-reckoning)' if self.killed else 'RESTORED'))
+        self.get_logger().warning('VISION ' + ('LOST (dead-reckoning)' if self.killed else 'RESTORED'))
         resp.acknowledged = True
         return resp
 

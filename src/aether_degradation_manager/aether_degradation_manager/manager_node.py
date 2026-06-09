@@ -27,7 +27,7 @@ class DegradationManager(Node):
     def on_state(self, msg: IntegrityState):
         m = msg.mode.mode
         if m != self.last:
-            self.get_logger().warn(
+            self.get_logger().warning(
                 f'NAV MODE -> {_NAMES.get(m, m)}  (trust={msg.trust:.2f}, '
                 f'HPL={msg.protection.horizontal_pl:.2f} m, '
                 f'outage={msg.time_since_aiding_s:.2f} s)')
