@@ -61,6 +61,19 @@ That exercises the **exact** protection-level proxy, NEES check, and degradation
 <img src="docs/figures/ib_coverage.png" width="48%">
 </p>
 
+## Fastest live demo (Ubuntu 22.04 — no Gazebo/OpenVINS needed)
+
+The **guaranteed** path: a representative VIO trajectory drives the *real* integrity stack, so the kill-camera beat always works.
+
+```bash
+./scripts/run_replay_demo.sh                 # replay -> integrity_monitor + degradation_manager + cockpit
+rviz2 -d src/aether_bringup/config/aether.rviz
+./scripts/run_demo.sh kill                   # vision loss -> trust RED < 0.5 s, bound blooms, truth stays inside
+./scripts/run_demo.sh restore                # recover
+```
+
+Real VIO accuracy comes from OpenVINS on the **EuRoC** dataset; the full Gazebo sim is the bonus. The exact 3-day plan is in **[`docs/RUNBOOK.pdf`](docs/RUNBOOK.pdf)**.
+
 ## Run the full system (Ubuntu 22.04)
 
 ROS2 Humble + Gazebo Harmonic + OpenVINS only run on Linux. Everything you must do by hand is in **[`docs/AETHER_MANUAL_STEPS.pdf`](docs/AETHER_MANUAL_STEPS.pdf)** (incl. the optional 3D-modeling path). The short version:
