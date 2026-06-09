@@ -7,6 +7,16 @@
 
 ---
 
+## ✅ Verified platform status (tested on the dev machine, 9 Jun)
+
+**Verified working on Ubuntu 26.04 / ROS2 Lyrical (WSL2):**
+- **T1 — live integrity demo:** `replay → integrity_monitor → degradation_manager → cockpit`. Camera-kill → `/nav/state` `NOMINAL→INERTIAL→NOMINAL`, `/nav/trust` `1.0→0.02`, horizontal protection level `0.21 m → 1.66 m` (bound blooms ~8×, then recovers).
+- **T3 — Gazebo tunnel sim:** world + drone load on Gazebo Sim 10; HG4930-IMU (`/imu/data`) and ground-truth (`/aether/ground_truth`) publish to ROS2.
+
+**⚠️ OpenVINS (the VIO estimator — Phase 2) requires Ubuntu 24.04 / ROS2 Jazzy.** It does **not** build on 26.04/Lyrical yet (CMake 4 dropped the old `cmake_minimum_required`; Boost 1.90 made `system` header-only; `ament_target_dependencies` was removed). On 24.04/Jazzy it builds out-of-box. **Recommended for the 12th:** run the full stack on **Ubuntu 24.04** — `wsl --install -d Ubuntu-24.04`, then `bash scripts/wsl_setup_ros2.sh` (edit the codename `resolute`→`noble` and `lyrical`→`jazzy`) and `bash scripts/wsl_build_openvins.sh`. The integrity layer + Gazebo sim run there unchanged.
+
+---
+
 ## Phase 0 — What already works *today*, on any laptop (no Ubuntu)
 
 You can validate the whole integrity algorithm right now, on Windows/Mac, before touching Ubuntu:

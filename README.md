@@ -65,7 +65,15 @@ That exercises the **exact** protection-level proxy, NEES check, and degradation
 
 The **guaranteed** path: a representative VIO trajectory drives the *real* integrity stack, so the kill-camera beat always works.
 
-> **Verified running** on Ubuntu 26.04 / ROS2 **Lyrical** (WSL2). Headless test result — `/nav/state`: `NOMINAL → INERTIAL → NOMINAL`; `/nav/trust`: `1.0 → 0.02`; horizontal protection level: `0.21 m → 1.66 m` (the bound blooms ~8× on vision loss, then contracts). The integrity layer is distro-agnostic `rclpy` — it also builds on Jazzy (24.04) / Humble (22.04).
+### Verified status (built & run on Ubuntu 26.04 / ROS2 Lyrical, WSL2)
+
+| Tier | What | Status |
+|---|---|---|
+| **T1 — integrity, live** | `replay → integrity_monitor → degradation_manager → cockpit`. Headless test: `/nav/state` `NOMINAL→INERTIAL→NOMINAL`, `/nav/trust` `1.0→0.02`, horizontal PL `0.21 m → 1.66 m` (bound blooms ~8× on vision loss, recovers). | ✅ **verified** |
+| **T3 — Gazebo sim** | tunnel world + drone load (Gazebo Sim 10); HG4930-IMU (`/imu/data`) and ground-truth (`/aether/ground_truth`) publish to ROS2. | ✅ **verified** (cameras render in the GUI/WSLg) |
+| **T2 — OpenVINS VIO** | the stereo-inertial estimator + drift numbers. | ⚠️ **build on Ubuntu 24.04 / ROS2 Jazzy** — OpenVINS isn't compatible with 26.04/Lyrical yet (CMake 4 / Boost 1.90 / `ament_target_dependencies` removed). |
+
+The integrity layer + sim are distro-agnostic and verified on 26.04. For the OpenVINS floor, use 24.04/Jazzy (see `docs/RUNBOOK.pdf`).
 
 ```bash
 # one-time (installs ROS2 for your Ubuntu; Lyrical on 26.04, edit the codename for 24.04/22.04):
