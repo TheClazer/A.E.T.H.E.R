@@ -1,0 +1,18 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Displays:
+    - Class: rviz_default_plugins/Marker
+      Name: IntegrityBound
+      Topic: { Value: /viz/integrity_bound }
+      Enabled: true
+    - Class: rviz_default_plugins/Marker
+      Name: Truth
+      Topic: { Value: /viz/truth }
+      Enabled: true
+    - Class: rviz_default_plugins/Odometry
+      Name: Estimate
+      Topic: { Value: /ov_msckf/odomimu }
+      Enabled: true
+  Global Options: { Fixed Frame: odom }

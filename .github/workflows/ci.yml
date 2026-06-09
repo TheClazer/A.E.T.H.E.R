@@ -1,0 +1,27 @@
+name: aether-ci
+
+# Lints and tests the pure-Python integrity core (no ROS2 needed in CI).
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  integrity-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: pip install numpy scipy matplotlib pytest flake8
+      - name: Lint
+        run: flake8 offline_demo --max-line-length=110 --extend-ignore=E203,W503
+      - name: Verify integrity constants
+        run: python offline_demo/verify_constants.py
+      - name: Run unit tests
+        run: pytest offline_demo/test_core.py -q
+      - name: Smoke-run the offline demo
+        run: python offline_demo/run_demo.py

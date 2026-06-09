@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>aether_bringup</name>
+  <version>0.1.0</version>
+  <description>A.E.T.H.E.R launch orchestration + configuration (any subset runs).</description>
+  <maintainer email="therayyn16@gmail.com">TheClazer</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>aether_sensor_bridge</exec_depend>
+  <exec_depend>aether_integrity_monitor</exec_depend>
+  <exec_depend>aether_degradation_manager</exec_depend>
+  <exec_depend>aether_health_cockpit</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

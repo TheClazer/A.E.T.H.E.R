@@ -1,0 +1,12 @@
+# Upstream sources A.E.T.H.E.R builds on. Pull with:
+#   vcs import src < aether.repos
+# (OpenVINS is built separately in ~/ws_ov in the manual; listed here for reference.)
+repositories:
+  open_vins:
+    type: git
+    url: https://github.com/rpng/open_vins.git
+    version: master
+  ros_gz:
+    type: git
+    url: https://github.com/gazebosim/ros_gz.git
+    version: humble

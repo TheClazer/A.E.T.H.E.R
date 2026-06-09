@@ -1,0 +1,14 @@
+integrity_monitor:
+  ros__parameters:
+    k_operational: 2.4477      # 95% 2-D containment  (scipy: sqrt(chi2.ppf(0.95,2)))
+    k_dal_c: 6.7374            # DAL-C, P_HMI=1e-5/hr @ 20 Hz (exceedance 1.39e-10)
+    lambda_md: 45.0            # min-detectable non-centrality (offline RAIM-slope bound)
+    rate_hz: 20.0
+    n_feat_nominal: 120
+    tr_nominal: 0.02
+    n_feat_degraded: 80
+    n_feat_inertial: 10
+    n_feat_reacquire: 40
+    debounce_s: 0.3            # the "we know within half a second" detection latency
+    nees_window: 50
+    nees_dim: 3

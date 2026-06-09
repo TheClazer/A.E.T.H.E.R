@@ -1,0 +1,27 @@
+# ROS2 / colcon
+build/
+install/
+log/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# ROS bags / results data
+*.bag
+*.db3
+bags/
+results/*.zip
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# keep generated report figures (committed for the README)
+!docs/figures/

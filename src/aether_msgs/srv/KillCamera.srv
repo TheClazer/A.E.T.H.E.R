@@ -1,0 +1,4 @@
+# Demo fault-injection: blank the stereo image stream on command.
+bool enable
+---
+bool acknowledged
