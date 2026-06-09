@@ -5,9 +5,12 @@ A.E.T.H.E.R core integrity math  —  pure Python, no ROS2 dependency.
   Assured Estimation with Trust, Health & Error-bounded Reckoning.
 
 This module is the single source of truth for the navigation-integrity layer:
-  * a covariance-trace -> Protection-Level proxy (the "breathing" bound),
+  * an oriented eigen-ellipse -> Protection-Level (the "breathing" bound;
+    HPL = k * sqrt(lambda_max) of the horizontal covariance block),
   * a dual bound (operational k_op and conservative DAL-C k_ffd),
+  * a covariance-conditioned observability proxy D in [0, 1],
   * a NEES consistency check (proves the bound actually covers the truth),
+  * constants for the IMU-vs-VIO solution-separation fault detector,
   * a hysteretic, debounced R(D) degradation state machine.
 
 It is imported BOTH by the offline demo (offline_demo/run_demo.py, runs on any
@@ -40,6 +43,19 @@ K_OP: float = float(np.sqrt(chi2.ppf(0.95, 2))) if _HAVE_SCIPY else 2.4477
 K_DALC: float = float(np.sqrt(chi2.ppf(1.0 - 1.39e-10, 2))) if _HAVE_SCIPY else 6.7374
 # Missed-detection non-centrality used in the (offline/stretch) RAIM-slope bound.
 LAMBDA_MD: float = 45.0
+# Nominal horizontal 1-sigma (m) used by the observability proxy (slightly above
+# the [0.06, 0.06] nominal so that healthy tracking saturates D at 1).
+SIGMA_NOM_H: float = 0.08
+
+# --------------------------------------------------------------------------
+# Solution-separation (IMU dead-reckoning vs VIO) consistency-fault detector
+# --------------------------------------------------------------------------
+GRAVITY: float = 9.8           # m/s^2, world frame (accel_world = a_meas - [0,0,g])
+SEP_WINDOW_S: float = 2.0      # dead-reckoning channel re-anchors to VIO this often
+SEP_NORM_THRESH: float = 3.0   # normalized-separation threshold (in sigma)
+SEP_PERSIST_S: float = 0.3     # exceedance must persist this long before flagging
+SEP_SIGMA_FLOOR: float = 0.05  # floor (m) on sqrt(lambda_max) in the normalization
+SEP_TRUST_CAP: float = 0.3     # trust ceiling while the separation fault is active
 
 # --------------------------------------------------------------------------
 # Degradation thresholds  (mirror src/aether_bringup/config/integrity.yaml)
@@ -68,10 +84,44 @@ def protection_level(p_pos: np.ndarray, k: float = K_OP) -> np.ndarray:
     return k * sigma
 
 
+def horizontal_ellipse(p_pos: np.ndarray, k: float = K_OP) -> tuple[float, float, float]:
+    """Oriented horizontal error ellipse from the 2x2 horizontal covariance block.
+
+    Eigendecomposition of P[0:2, 0:2] gives the principal axes of the error
+    distribution; the k-sigma ellipse is the bound actually drawn in RViz.
+
+    Returns ``(semi_major, semi_minor, yaw)``: semi-axes in metres and the yaw
+    (radians, odom frame) of the major principal axis. Yaw is defined modulo pi
+    (an eigenvector and its negation span the same axis).
+    """
+    H = np.asarray(p_pos, dtype=float)[0:2, 0:2]
+    H = 0.5 * (H + H.T)                      # symmetrize against numerical noise
+    w, v = np.linalg.eigh(H)                 # ascending eigenvalues, orthonormal vectors
+    w = np.clip(w, 1e-12, None)
+    major = v[:, 1]                          # eigenvector of lambda_max
+    yaw = float(np.arctan2(major[1], major[0]))
+    return float(k * np.sqrt(w[1])), float(k * np.sqrt(w[0])), yaw
+
+
 def horizontal_pl(p_pos: np.ndarray, k: float = K_OP) -> float:
-    """Scalar 2-D horizontal protection level (the radius the breathing ellipse uses)."""
-    pl = protection_level(p_pos, k)
-    return float(np.hypot(pl[0], pl[1]))
+    """Scalar 2-D horizontal protection level = k * sqrt(lambda_max) of the
+    horizontal covariance block — the semi-major axis of the oriented ellipse,
+    i.e. the bound in the worst-constrained horizontal direction."""
+    semi_major, _, _ = horizontal_ellipse(p_pos, k)
+    return semi_major
+
+
+def observability_index(p_pos: np.ndarray) -> float:
+    """Covariance-conditioned observability proxy D in [0, 1].
+
+    D = clip(SIGMA_NOM_H^2 / lambda_max(P_2x2), 0, 1) — the constraint ratio of
+    the worst horizontal direction vs nominal; the whitened information-matrix
+    eigendecomposition remains the documented stretch goal.
+    """
+    H = np.asarray(p_pos, dtype=float)[0:2, 0:2]
+    H = 0.5 * (H + H.T)
+    lam_max = float(np.max(np.linalg.eigvalsh(H)))
+    return float(np.clip(SIGMA_NOM_H ** 2 / max(lam_max, 1e-12), 0.0, 1.0))
 
 
 def nees(err_xyz, p_pos: np.ndarray) -> float:
@@ -145,8 +195,11 @@ class DegradationStateMachine:
 
 if __name__ == "__main__":  # tiny smoke test
     P = np.diag([0.01, 0.01, 0.02])
+    a, b, yaw = horizontal_ellipse(P)
     print("K_OP   =", round(K_OP, 4))
     print("K_DALC =", round(K_DALC, 4))
     print("PL(op) =", protection_level(P).round(4), "m")
     print("HPL    =", round(horizontal_pl(P), 4), "m")
+    print("ellipse=", round(a, 4), round(b, 4), "yaw", round(yaw, 4))
+    print("D      =", round(observability_index(P), 4))
     print("NEES gate (95%, d=3) =", tuple(round(x, 3) for x in nees_gate()))

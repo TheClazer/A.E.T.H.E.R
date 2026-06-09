@@ -5,6 +5,10 @@ repositories:
   open_vins:
     type: git
     url: https://github.com/rpng/open_vins.git
+    # NOTE: upstream cuts no ROS2-Jazzy release tag, so we track master here.
+    # The reproducible pin lives in the Docker image: docker/Dockerfile.openvins
+    # records the exact commit it built at /OPENVINS_SHA. If you build outside
+    # Docker and need bit-for-bit reproducibility, replace 'master' with that SHA.
     version: master
   ros_gz:
     type: git

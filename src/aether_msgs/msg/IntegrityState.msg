@@ -7,3 +7,4 @@ float64 trust                 # continuous 0..1 trust score
 bool    bound_valid           # NEES inside chi-square gate -> bound trustworthy
 float64 time_since_aiding_s   # seconds since last accepted vision update
 aether_msgs/NavMode mode
+float64 solution_separation   # horizontal IMU-dead-reckoning vs VIO separation (m), raw

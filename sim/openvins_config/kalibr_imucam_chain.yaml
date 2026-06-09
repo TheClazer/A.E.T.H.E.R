@@ -1,0 +1,61 @@
+%YAML:1.0
+# Stereo camera <-> IMU chain for the A.E.T.H.E.R sim drone (Kalibr format,
+# sim-exact — derived by hand from sim/models/aether_drone/model.sdf).
+#
+# FRAME-CONVENTION DERIVATION
+#   Body/IMU frame B is gz FLU: x forward, y left, z up.
+#   Camera optical frame C is REP-103 optical: x right, y down, z forward
+#   (out of the lens, looking along body +x). Hence:
+#       x_opt = -y_b
+#       y_opt = -z_b
+#       z_opt = +x_b
+#   so the rotation taking body vectors to optical vectors is
+#       R_CB = [[0,-1, 0],
+#               [0, 0,-1],
+#               [1, 0, 0]]
+#   Cameras sit (from the SDF <pose>) at p_B = (0.10, +/-0.06, 0.0) in the body:
+#   left at y=+0.06, right at y=-0.06 (stereo baseline 0.12 m).
+#   T_cam_imu maps points from the IMU frame into the camera frame:
+#       p_C = R_CB * p_B + t,   t = -R_CB * p_cam_in_B
+#   left : t = -R_CB*(0.10, 0.06,0) = ( 0.06, 0.0, -0.10)
+#   right: t = -R_CB*(0.10,-0.06,0) = (-0.06, 0.0, -0.10)
+#
+# INTRINSICS
+#   horizontal_fov = 1.047 rad over 640 px:
+#       fx = fy = (640/2) / tan(1.047/2) = 554.256
+#   principal point at the image center (320, 240); sim pinhole, zero distortion.
+
+cam0:
+  T_cam_imu:
+    - [0.0, -1.0, 0.0, 0.06]
+    - [0.0, 0.0, -1.0, 0.0]
+    - [1.0, 0.0, 0.0, -0.10]
+    - [0.0, 0.0, 0.0, 1.0]
+  camera_model: pinhole
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: radtan
+  intrinsics: [554.256, 554.256, 320.0, 240.0]   # fx fy cx cy
+  resolution: [640, 480]
+  rostopic: /camera/left/image_raw
+  timeshift_cam_imu: 0.0
+cam1:
+  # T_cn_cnm1: cam1 (right) w.r.t. cam0 (left). In cam0 optical axes the right
+  # camera sits at +0.12 m along x_opt (body offset (0,-0.12,0) -> x_opt=+0.12),
+  # identical orientation, so t = -R * p = (-0.12, 0, 0).
+  T_cn_cnm1:
+    - [1.0, 0.0, 0.0, -0.12]
+    - [0.0, 1.0, 0.0, 0.0]
+    - [0.0, 0.0, 1.0, 0.0]
+    - [0.0, 0.0, 0.0, 1.0]
+  T_cam_imu:
+    - [0.0, -1.0, 0.0, -0.06]
+    - [0.0, 0.0, -1.0, 0.0]
+    - [1.0, 0.0, 0.0, -0.10]
+    - [0.0, 0.0, 0.0, 1.0]
+  camera_model: pinhole
+  distortion_coeffs: [0.0, 0.0, 0.0, 0.0]
+  distortion_model: radtan
+  intrinsics: [554.256, 554.256, 320.0, 240.0]   # fx fy cx cy
+  resolution: [640, 480]
+  rostopic: /camera/right/image_raw
+  timeshift_cam_imu: 0.0

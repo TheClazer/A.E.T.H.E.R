@@ -18,7 +18,7 @@ A.E.T.H.E.R demo beat sheet (run aether.launch.py + rviz2 -d config/aether.rviz 
   8-9s   INTEGRITY trust -> RED in < 0.5s; mode INERTIAL; the bound starts to bloom
   9-28s  COAST     bound blooms ~1.0 m, chasing & containing the moving truth (TRUTH in BOUND)
   28s    ./scripts/run_demo.sh restore   -> vision back; bound contracts; trust GREEN
-Watch /nav/trust /nav/state /nav/integrity_bound ; HUD: streamlit run src/aether_health_cockpit/aether_health_cockpit/streamlit_app.py
+Watch /nav/trust /nav/state /nav/integrity_bound ; HUD: ros2 run aether_health_cockpit mission_hud  (or launch replay.launch.py hud:=true)
 "When the camera dies, our drift bound still covers the true position 95%+ of the time -- and we know within half a second."
 TXT
     ;;

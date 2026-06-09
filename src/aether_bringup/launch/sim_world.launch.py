@@ -1,6 +1,7 @@
-# Launch the Gazebo Harmonic tunnel world + the ros_gz parameter bridge.
-# PX4 SITL provides actuation (see manual). Ground truth is bridged to
-# /aether/ground_truth via the OdometryPublisher plugin on the drone model.
+# Launch the Gazebo Harmonic tunnel world + the ros_gz parameter bridge +
+# the flight_director (open-loop velocity profile -> VelocityControl on the
+# kinematic sensor rig). Ground truth is bridged to /aether/ground_truth via
+# the OdometryPublisher plugin on the drone model.
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
@@ -29,10 +30,16 @@ def generate_launch_description():
             '/camera/right/image_raw@sensor_msgs/msg/Image[gz.msgs.Image',
             '/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU',
             '/aether/ground_truth@nav_msgs/msg/Odometry[gz.msgs.Odometry',
+            # ROS -> GZ (note ']' direction): velocity commands for the rig
+            '/model/aether_drone/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
         ],
+        parameters=[{'use_sim_time': True}], output='screen')
+
+    flight = Node(
+        package='aether_flight', executable='flight_director', name='flight_director',
         parameters=[{'use_sim_time': True}], output='screen')
 
     return LaunchDescription([
         SetEnvironmentVariable('GZ_SIM_RESOURCE_PATH', models),
-        gz, bridge,
+        gz, bridge, flight,
     ])

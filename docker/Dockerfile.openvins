@@ -1,0 +1,40 @@
+# A.E.T.H.E.R — OpenVINS build environment (ROS2 Jazzy).
+# OpenVINS does not build on Ubuntu 26.04/Lyrical (CMake 4 / Boost 1.90 / ament API removal),
+# so the VIO core lives in this Jazzy container. The sim + integrity layer run natively or here.
+#
+# Build:  docker build -f docker/Dockerfile.openvins -t aether/openvins:jazzy .
+# Run:    docker run -it --rm -v /mnt/d/Work/AETHER:/aether aether/openvins:jazzy
+FROM ros:jazzy-perception
+
+ENV DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git python3-pip python3-colcon-common-extensions \
+      libeigen3-dev libboost-all-dev libceres-dev \
+      ros-jazzy-image-transport ros-jazzy-cv-bridge \
+      ros-jazzy-rosbag2-storage-mcap \
+    && rm -rf /var/lib/apt/lists/*
+
+# OpenVINS (record the exact SHA for reproducibility)
+WORKDIR /ws_ov/src
+RUN git clone https://github.com/rpng/open_vins.git \
+ && cd open_vins && git rev-parse HEAD | tee /OPENVINS_SHA
+
+# Current Jazzy image_transport/cv_bridge ship only .hpp headers (the deprecated
+# .h compat headers were removed); patch OpenVINS includes accordingly.
+RUN cd /ws_ov/src/open_vins \
+ && grep -rlE 'image_transport/image_transport\.h[">]' . | xargs -r sed -i 's|image_transport/image_transport\.h\([">]\)|image_transport/image_transport.hpp\1|g' \
+ && grep -rlE 'cv_bridge/cv_bridge\.h[">]' . | xargs -r sed -i 's|cv_bridge/cv_bridge\.h\([">]\)|cv_bridge/cv_bridge.hpp\1|g' \
+ && grep -rlE 'tf2_geometry_msgs/tf2_geometry_msgs\.h[">]' . | xargs -r sed -i 's|tf2_geometry_msgs/tf2_geometry_msgs\.h\([">]\)|tf2_geometry_msgs/tf2_geometry_msgs.hpp\1|g'
+
+# Memory-bounded Release build
+WORKDIR /ws_ov
+RUN . /opt/ros/jazzy/setup.sh \
+ && MAKEFLAGS="-j4" colcon build --parallel-workers 1 \
+      --packages-up-to ov_msckf ov_eval \
+      --cmake-args -DCMAKE_BUILD_TYPE=Release \
+ && rm -rf build log
+
+# Source everything on shell entry
+RUN echo "source /opt/ros/jazzy/setup.bash && source /ws_ov/install/setup.bash" >> /root/.bashrc
+WORKDIR /aether
+CMD ["bash"]

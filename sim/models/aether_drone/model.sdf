@@ -1,11 +1,21 @@
 <?xml version="1.0" ?>
 <!-- A.E.T.H.E.R drone: primitive quadrotor + stereo + HG4930-class IMU + ground truth.
-     IMU noise parameterized to Honeywell HG4930 CA51 (ARW 0.04 deg/rtHr, VRW 0.03 m/s/rtHr). -->
+     IMU noise parameterized to Honeywell HG4930 CA51 (ARW 0.04 deg/rtHr, VRW 0.03 m/s/rtHr).
+
+     Actuation model: this is deliberately a KINEMATIC SENSOR RIG, not a dynamic
+     multicopter. Gravity is disabled on every link and a VelocityControl system
+     drives the body from /model/aether_drone/cmd_vel (gz.msgs.Twist). The drone
+     therefore follows commanded velocities exactly while the IMU still reports
+     proper acceleration (kinematic accel minus world gravity), i.e. it reads like
+     a perfectly-stabilized hovering vehicle. This trades aerodynamic realism for
+     a repeatable, controller-free trajectory — the honest choice for evaluating
+     the VIO/integrity stack rather than a flight controller. -->
 <sdf version="1.10">
   <model name="aether_drone">
     <pose>0 0 0 0 0 0</pose>
 
     <link name="base_link">
+      <gravity>false</gravity>
       <inertial>
         <mass>1.5</mass>
         <inertia><ixx>0.015</ixx><iyy>0.015</iyy><izz>0.025</izz>
@@ -68,25 +78,25 @@
     </link>
 
     <!-- four arms (visual only, fixed) -->
-    <link name="arm_fl"><pose>0.15 0.15 -0.03 0 1.5708 0</pose>
+    <link name="arm_fl"><pose>0.15 0.15 -0.03 0 1.5708 0</pose><gravity>false</gravity>
       <inertial><mass>0.05</mass><inertia><ixx>1e-4</ixx><iyy>1e-4</iyy><izz>1e-4</izz>
         <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia></inertial>
       <visual name="v"><geometry><cylinder><radius>0.015</radius><length>0.18</length></cylinder></geometry>
         <material><ambient>0.77 0.16 0.10 1</ambient></material></visual></link>
     <joint name="j_fl" type="fixed"><parent>base_link</parent><child>arm_fl</child></joint>
-    <link name="arm_fr"><pose>0.15 -0.15 -0.03 0 1.5708 0</pose>
+    <link name="arm_fr"><pose>0.15 -0.15 -0.03 0 1.5708 0</pose><gravity>false</gravity>
       <inertial><mass>0.05</mass><inertia><ixx>1e-4</ixx><iyy>1e-4</iyy><izz>1e-4</izz>
         <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia></inertial>
       <visual name="v"><geometry><cylinder><radius>0.015</radius><length>0.18</length></cylinder></geometry>
         <material><ambient>0.77 0.16 0.10 1</ambient></material></visual></link>
     <joint name="j_fr" type="fixed"><parent>base_link</parent><child>arm_fr</child></joint>
-    <link name="arm_bl"><pose>-0.15 0.15 -0.03 0 1.5708 0</pose>
+    <link name="arm_bl"><pose>-0.15 0.15 -0.03 0 1.5708 0</pose><gravity>false</gravity>
       <inertial><mass>0.05</mass><inertia><ixx>1e-4</ixx><iyy>1e-4</iyy><izz>1e-4</izz>
         <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia></inertial>
       <visual name="v"><geometry><cylinder><radius>0.015</radius><length>0.18</length></cylinder></geometry>
         <material><ambient>0.18 0.37 0.52 1</ambient></material></visual></link>
     <joint name="j_bl" type="fixed"><parent>base_link</parent><child>arm_bl</child></joint>
-    <link name="arm_br"><pose>-0.15 -0.15 -0.03 0 1.5708 0</pose>
+    <link name="arm_br"><pose>-0.15 -0.15 -0.03 0 1.5708 0</pose><gravity>false</gravity>
       <inertial><mass>0.05</mass><inertia><ixx>1e-4</ixx><iyy>1e-4</iyy><izz>1e-4</izz>
         <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia></inertial>
       <visual name="v"><geometry><cylinder><radius>0.015</radius><length>0.18</length></cylinder></geometry>
@@ -102,7 +112,13 @@
       <dimensions>3</dimensions>
     </plugin>
 
-    <!-- NOTE: actuation is provided by PX4 SITL (gz_x500-style multicopter plugin) or by a
-         velocity command in the pure-gz fallback. See docs/AETHER_MANUAL_STEPS.pdf. -->
+    <!-- U2 ACTUATION: kinematic velocity drive. Subscribes (by VelocityControl
+         default naming) to /model/aether_drone/cmd_vel as gz.msgs.Twist; the
+         flight_director node (src/aether_flight) publishes the trajectory there
+         through the ros_gz bridge. Links carry <gravity>false</gravity> so the
+         rig holds altitude with zero commanded vz (see header comment). -->
+    <plugin filename="gz-sim-velocity-control-system"
+            name="gz::sim::systems::VelocityControl">
+    </plugin>
   </model>
 </sdf>

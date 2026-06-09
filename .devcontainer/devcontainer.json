@@ -1,0 +1,21 @@
+{
+  // A.E.T.H.E.R dev container — the same ROS2 Jazzy + OpenVINS image the
+  // docker-compose services use. Build it once with:
+  //   docker compose build openvins
+  "name": "A.E.T.H.E.R (ROS2 Jazzy + OpenVINS)",
+  "image": "aether/openvins:jazzy",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/aether,type=bind",
+  "workspaceFolder": "/aether",
+  "runArgs": ["--network=host"],
+  "remoteUser": "root",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-iot.vscode-ros"
+      ]
+    }
+  },
+  // Pre-build the message package so IDE imports of aether_msgs resolve.
+  "postCreateCommand": "bash -c 'source /opt/ros/jazzy/setup.bash && colcon build --packages-select aether_msgs'"
+}

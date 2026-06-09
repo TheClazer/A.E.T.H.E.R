@@ -18,7 +18,8 @@ def main():
     from rosidl_runtime_py.utilities import get_message
 
     reader = SequentialReader()
-    reader.open(StorageOptions(uri=bag, storage_id='sqlite3'),
+    # storage_id='' lets rosbag2 auto-detect (mcap on newer distros, sqlite3 on older)
+    reader.open(StorageOptions(uri=bag, storage_id=''),
                 ConverterOptions('cdr', 'cdr'))
     types = {t.name: t.type for t in reader.get_all_topics_and_types()}
     msg_cls = get_message(types[topic])

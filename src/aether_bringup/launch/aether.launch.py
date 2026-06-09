@@ -20,6 +20,8 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim', default_value='true'),
         inc('sim_world.launch.py', IfCondition(use_sim)),
+        # sensor_bridge ownership: vio.launch.py spawns it exactly once;
+        # integrity.launch.py deliberately does not (no duplicate bridge).
         inc('vio.launch.py'),
         inc('integrity.launch.py'),
     ])

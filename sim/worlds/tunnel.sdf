@@ -40,40 +40,15 @@
       </link>
     </model>
 
-    <!-- two textured walls forming a 200 m corridor (features for the tracker) -->
-    <model name="wall_left">
-      <static>true</static>
-      <pose>100 2 1.5 0 0 0</pose>
-      <link name="link">
-        <collision name="c"><geometry><box><size>200 0.2 3</size></box></geometry></collision>
-        <visual name="v">
-          <geometry><box><size>200 0.2 3</size></box></geometry>
-          <material><ambient>0.55 0.5 0.45 1</ambient><diffuse>0.7 0.65 0.6 1</diffuse></material>
-        </visual>
-      </link>
-    </model>
-    <model name="wall_right">
-      <static>true</static>
-      <pose>100 -2 1.5 0 0 0</pose>
-      <link name="link">
-        <collision name="c"><geometry><box><size>200 0.2 3</size></box></geometry></collision>
-        <visual name="v">
-          <geometry><box><size>200 0.2 3</size></box></geometry>
-          <material><ambient>0.55 0.5 0.45 1</ambient><diffuse>0.7 0.65 0.6 1</diffuse></material>
-        </visual>
-      </link>
-    </model>
-    <!-- a deliberately FEATURE-POOR stretch (bare wall) for the integrity story -->
-    <model name="bare_patch_left">
-      <static>true</static>
-      <pose>120 1.85 1.5 0 0 0</pose>
-      <link name="link">
-        <visual name="v">
-          <geometry><box><size>20 0.05 3</size></box></geometry>
-          <material><ambient>0.5 0.5 0.5 1</ambient><diffuse>0.5 0.5 0.5 1</diffuse></material>
-        </visual>
-      </link>
-    </model>
+    <!-- world v2 (U4): textured corridor walls live in their own model —
+         repeated 10 m PBR panels, feature-rich everywhere except the bare
+         (feature-poor) stretch at x = 120..140 for the integrity story.
+         See sim/models/tunnel_walls + sim/textures/gen_textures.py. -->
+    <include>
+      <uri>model://tunnel_walls</uri>
+      <name>tunnel_walls</name>
+      <pose>0 0 0 0 0 0</pose>
+    </include>
 
     <!-- the A.E.T.H.E.R drone (stereo + IMU + ground-truth publisher) -->
     <include>

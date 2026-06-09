@@ -1,0 +1,465 @@
+<?xml version="1.0" ?>
+<!-- A.E.T.H.E.R tunnel walls (U4 world v2): the 200 m corridor as a single static
+     model of repeated 10 m PBR-textured panels (y = +/-2, height 3, centered z=1.5).
+     Every panel uses feature_rich.png (checker+noise: dense tracker food) EXCEPT
+     the deliberate feature-starvation stretch at x = 120..140, which uses the
+     near-uniform bare.png on BOTH walls - that is where VIO quality collapses and
+     the integrity layer earns its keep. Textures are generated deterministically
+     by sim/textures/gen_textures.py. Collision is two full-length boxes (cheap
+     physics); the panels are visual-only. -->
+<sdf version="1.10">
+  <model name="tunnel_walls">
+    <static>true</static>
+    <link name="link">
+      <collision name="c_left">
+        <pose>100 2 1.5 0 0 0</pose>
+        <geometry><box><size>200 0.2 3</size></box></geometry>
+      </collision>
+      <collision name="c_right">
+        <pose>100 -2 1.5 0 0 0</pose>
+        <geometry><box><size>200 0.2 3</size></box></geometry>
+      </collision>
+      <visual name="wl_005">
+        <pose>5 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_015">
+        <pose>15 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_025">
+        <pose>25 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_035">
+        <pose>35 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_045">
+        <pose>45 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_055">
+        <pose>55 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_065">
+        <pose>65 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_075">
+        <pose>75 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_085">
+        <pose>85 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_095">
+        <pose>95 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_105">
+        <pose>105 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_115">
+        <pose>115 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <!-- feature-starvation stretch -->
+      <visual name="wl_125">
+        <pose>125 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/bare.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_135">
+        <pose>135 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/bare.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_145">
+        <pose>145 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_155">
+        <pose>155 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_165">
+        <pose>165 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_175">
+        <pose>175 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_185">
+        <pose>185 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_195">
+        <pose>195 2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_005">
+        <pose>5 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_015">
+        <pose>15 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_025">
+        <pose>25 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_035">
+        <pose>35 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_045">
+        <pose>45 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_055">
+        <pose>55 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_065">
+        <pose>65 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_075">
+        <pose>75 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_085">
+        <pose>85 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_095">
+        <pose>95 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_105">
+        <pose>105 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_115">
+        <pose>115 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_125">
+        <pose>125 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/bare.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_135">
+        <pose>135 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/bare.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_145">
+        <pose>145 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_155">
+        <pose>155 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_165">
+        <pose>165 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_175">
+        <pose>175 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_185">
+        <pose>185 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_195">
+        <pose>195 -2 1.5 0 0 0</pose>
+        <geometry><box><size>10 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls/materials/textures/feature_rich.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -30,6 +30,7 @@ def run():
     sm = core.DegradationStateMachine()
     trust = np.zeros(n); state = []; nees = np.zeros(n)
     hpl_op = np.zeros(n); hpl_dalc = np.zeros(n); herr = np.zeros(n)
+    obs_d = np.zeros(n); ell = []
     tr_prev = None
     for i in range(n):
         P = P_pos[i]
@@ -43,6 +44,8 @@ def run():
         hpl_op[i] = core.horizontal_pl(P, core.K_OP)
         hpl_dalc[i] = core.horizontal_pl(P, core.K_DALC)
         herr[i] = float(np.hypot(e[0], e[1]))
+        obs_d[i] = core.observability_index(P)
+        ell.append(core.horizontal_ellipse(P, core.K_OP))
 
     # ---- headline metrics ----
     cover_op = float(np.mean(herr <= hpl_op) * 100.0)
@@ -68,6 +71,8 @@ def run():
         "NEES 95% gate (d=3)": (round(lo, 2), round(hi, 2)),
         "max horizontal PL during outage (m)": round(float(hpl_op.max()), 2),
         "peak true horizontal error (m)": round(float(herr.max()), 2),
+        "min observability D during outage": round(
+            float(obs_d[(t >= out0) & (t < r["outage"][1])].min()), 4),
     }
 
     # ---- figure 1: breathing ellipse over the moving truth ----
@@ -77,8 +82,9 @@ def run():
     for ti in (9.0, 18.0, 28.0):
         i = int(ti * r["rate_hz"])
         col = RED if state[i] == "INERTIAL" else STEEL
-        e = Ellipse((x_est[i, 0], x_est[i, 1]), 2 * hpl_op[i], 2 * hpl_op[i] * 0.7,
-                    fill=False, edgecolor=col, lw=1.6)
+        a, b, yaw = ell[i]   # oriented eigen-ellipse: semi-axes + principal yaw
+        e = Ellipse((x_est[i, 0], x_est[i, 1]), 2 * a, 2 * b,
+                    angle=float(np.degrees(yaw)), fill=False, edgecolor=col, lw=1.6)
         ax.add_patch(e)
         ax.plot(x_gt[i, 0], x_gt[i, 1], "o", color=RED, ms=4)
         ax.annotate(f"t={ti:.0f}s  PL={hpl_op[i]:.2f}m", (x_est[i, 0], x_est[i, 1] + 0.9),
@@ -88,9 +94,10 @@ def run():
     ax.grid(True, color="#D7DDE2", lw=0.5); fig.tight_layout()
     fig.savefig(os.path.join(FIGDIR, "breathing_ellipse.png"), dpi=140); plt.close(fig)
 
-    # ---- figure 2: trust + state timeline ----
+    # ---- figure 2: trust + observability + state timeline ----
     fig, ax = plt.subplots(figsize=(7, 3.2))
-    ax.plot(t, trust, color=STEEL, lw=1.8)
+    ax.plot(t, trust, color=STEEL, lw=1.8, label="trust")
+    ax.plot(t, obs_d, color=INK, lw=1.2, ls="--", label="observability D")
     ax.axhspan(0.8, 1.0, color=GOOD, alpha=0.08); ax.axhspan(0.4, 0.8, color=AMBER, alpha=0.08)
     ax.axhspan(0.0, 0.4, color=RED, alpha=0.08)
     ax.axvspan(*r["outage"], color=RED, alpha=0.06)
@@ -98,8 +105,9 @@ def run():
         ax.axvline(t[inertial_idx], color=RED, lw=1, ls=":")
         ax.annotate(f"INERTIAL +{latency:.2f}s", (t[inertial_idx], 0.5), fontsize=8,
                     color=RED, family="monospace")
-    ax.set_title("Trust score & degradation state", fontsize=10)
-    ax.set_xlabel("time (s)"); ax.set_ylabel("trust 0–1"); ax.set_ylim(0, 1.02)
+    ax.set_title("Trust score, observability D & degradation state", fontsize=10)
+    ax.set_xlabel("time (s)"); ax.set_ylabel("trust / D  0–1"); ax.set_ylim(0, 1.02)
+    ax.legend(fontsize=8, loc="center right")
     ax.grid(True, color="#D7DDE2", lw=0.5); fig.tight_layout()
     fig.savefig(os.path.join(FIGDIR, "trust_timeline.png"), dpi=140); plt.close(fig)
 

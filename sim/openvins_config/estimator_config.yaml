@@ -1,0 +1,73 @@
+%YAML:1.0 # need to specify the file type at the top!
+# OpenVINS ov_msckf configuration for the A.E.T.H.E.R Gazebo tunnel sim.
+# Calibration is SIM-EXACT (taken straight from the SDF), so all online
+# calibration is disabled. Sensor topics are the *_raw / /imu/data names as
+# recorded by scripts/wsl_record_bag.sh.
+
+verbosity: "INFO"
+
+# ===================================================================
+# sensors
+use_stereo: true            # left+right processed as one stereo pair
+max_cameras: 2
+
+calib_cam_extrinsics: false # sim-exact extrinsics from the SDF — do not estimate
+calib_cam_intrinsics: false # sim-exact pinhole, zero distortion
+calib_cam_timeoffset: false # gz publishes cameras and IMU on the same clock
+calib_camimu_dt: 0.0
+
+# ===================================================================
+# state / window
+max_clones: 11              # sliding-window depth (rpng-sim style)
+max_slam: 50                # SLAM landmarks kept in state
+max_slam_in_update: 25
+max_msckf_in_update: 40
+dt_slam_delay: 1.0
+
+gravity_mag: 9.8            # matches <gravity>0 0 -9.8</gravity> in tunnel.sdf
+
+feat_rep_msckf: "GLOBAL_3D"
+feat_rep_slam: "ANCHORED_MSCKF_INVERSE_DEPTH"
+feat_rep_aruco: "ANCHORED_MSCKF_INVERSE_DEPTH"
+
+# zero-velocity update: off — the rig never stands still during the profile
+try_zupt: false
+
+# ===================================================================
+# initialization
+init_window_time: 2.0
+init_imu_thresh: 0.5        # kinematic rig accelerates gently; default 1.5 never trips
+init_max_disparity: 10.0
+init_max_features: 50
+
+# ===================================================================
+# feature tracker (KLT, rpng-sim style defaults)
+use_klt: true
+num_pts: 200
+fast_threshold: 20
+grid_x: 20
+grid_y: 20
+min_px_dist: 10
+knn_ratio: 0.70
+track_frequency: 21.0
+downsample_cameras: false
+num_opencv_threads: 4
+histogram_method: "HISTOGRAM"
+
+use_aruco: false
+num_aruco: 1024
+downsize_aruco: true
+
+# ===================================================================
+# measurement update noise / chi2 inflation
+up_msckf_sigma_px: 1
+up_msckf_chi2_multipler: 1
+up_slam_sigma_px: 1
+up_slam_chi2_multipler: 1
+up_aruco_sigma_px: 1
+up_aruco_chi2_multipler: 1
+
+# ===================================================================
+# calibration files (relative to this file)
+relative_config_imu: "kalibr_imu_chain.yaml"
+relative_config_imucam: "kalibr_imucam_chain.yaml"

@@ -22,6 +22,7 @@ setup(
     entry_points={
         'console_scripts': [
             'cockpit_node = aether_health_cockpit.cockpit_node:main',
+            'mission_hud = aether_health_cockpit.mission_hud:main',
         ],
     },
 )

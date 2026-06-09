@@ -1,0 +1,38 @@
+# A.E.T.H.E.R container services (U19).
+#
+#   docker compose build openvins     # build the ROS2 Jazzy + OpenVINS image
+#   docker compose run --rm openvins  # interactive shell, repo mounted at /aether
+#   docker compose run --rm demo      # one-shot: replay demo + fault beat ->
+#                                     #   results/metrics.csv + docs/figures/measured_*.png
+#
+# network_mode: host so DDS discovery reaches nodes running on the host
+# (e.g. RViz on the host watching a stack inside the container).
+services:
+  openvins:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.openvins
+    image: aether/openvins:jazzy
+    network_mode: host
+    volumes:
+      - .:/aether
+    working_dir: /aether
+    stdin_open: true
+    tty: true
+    command: bash
+
+  # One-shot measured report: scripts/run_measured_report.sh builds the aether
+  # workspace (first run only), launches replay.launch.py, records every
+  # integrity topic to CSV while injecting camera-kill / IMU-bias / starvation
+  # faults, then renders the measured figures. Outputs land on the host via
+  # the bind mount.
+  demo:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.openvins
+    image: aether/openvins:jazzy
+    network_mode: host
+    volumes:
+      - .:/aether
+    working_dir: /aether
+    command: bash scripts/run_measured_report.sh

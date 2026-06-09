@@ -6,8 +6,9 @@ Produces a deterministic, physically-plausible 32 s flight down a tunnel at
 
   * NOMINAL  : ~120 tracked features, tight position covariance.
   * OUTAGE   : features collapse to ~0; the filter dead-reckons, so the position
-               covariance blooms (sigma grows ~linearly with outage time) and the
-               estimate drifts away from ground truth but STAYS inside the bound.
+               covariance blooms (sigma grows ~linearly with outage time) with a
+               CORRELATED horizontal block (major axis along the drift direction)
+               and the estimate drifts from ground truth but STAYS inside the bound.
   * RE-ACQUIRE: features return, covariance contracts.
 
 No ROS2 / no Gazebo — this is the controllable rig that lets us validate the
@@ -74,8 +75,22 @@ def generate():
         x_est[k] = x_gt[k] + sigma[k] * (1 - a) * np.array([0.8, -0.5, 0.3])
         n_feat[k] = 40.0 + a * 80.0
 
-    # build per-step 3x3 covariance and the ROS-style 6x6 odom covariance
-    P_pos = np.array([np.diag(s ** 2) for s in sigma])
+    # build per-step 3x3 covariance and the ROS-style 6x6 odom covariance.
+    # During the outage the horizontal block is CORRELATED: dead-reckoning drift
+    # grows fastest along the drift direction, so the error ellipse is rotated
+    # (this exercises the oriented eigen-ellipse PL instead of an axis-aligned one).
+    phi = np.arctan2(-0.7, 1.0)        # drift direction (matches the drift vector)
+    R2 = np.array([[np.cos(phi), -np.sin(phi)], [np.sin(phi), np.cos(phi)]])
+    P_pos = np.zeros((n, 3, 3))
+    for i in range(n):
+        s = sigma[i]
+        if OUTAGE[0] <= t[i] < OUTAGE[1]:
+            s_h = float(np.hypot(s[0], s[1]))               # total horizontal 1-sigma
+            lam = np.diag([s_h ** 2, (0.45 * s_h) ** 2])    # major along drift
+            P_pos[i][0:2, 0:2] = R2 @ lam @ R2.T
+            P_pos[i][2, 2] = s[2] ** 2
+        else:
+            P_pos[i] = np.diag(s ** 2)
     odom_cov = np.zeros((n, 36))
     for i in range(n):
         C = np.zeros((6, 6))

@@ -1,6 +1,9 @@
 name: aether-ci
 
-# Lints and tests the pure-Python integrity core (no ROS2 needed in CI).
+# Two jobs:
+#   integrity-core    — lints + tests the pure-Python integrity math (no ROS2)
+#   ros2-jazzy-build  — colcon-builds the aether packages in ros:jazzy and
+#                       smoke-imports every node module (U16)
 on:
   push:
     branches: [ main ]
@@ -25,3 +28,36 @@ jobs:
         run: pytest offline_demo/test_core.py -q
       - name: Smoke-run the offline demo
         run: python offline_demo/run_demo.py
+
+  ros2-jazzy-build:
+    runs-on: ubuntu-latest
+    container: ros:jazzy
+    steps:
+      - uses: actions/checkout@v4
+      - name: Resolve ROS dependencies
+        shell: bash
+        run: |
+          apt-get update
+          rosdep update || (rosdep init && rosdep update)
+          # GUI/sim deps are not needed to build or import the nodes in CI
+          rosdep install --from-paths src --ignore-src -y -r \
+            --skip-keys "rviz2 ros_gz_sim ros_gz_bridge"
+      - name: colcon build (tests skipped)
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --packages-select aether_msgs \
+            --cmake-args -DBUILD_TESTING=OFF
+          source install/setup.bash
+          colcon build --packages-select aether_sensor_bridge aether_sim_replay \
+            aether_integrity_monitor aether_degradation_manager \
+            aether_health_cockpit aether_flight aether_bringup \
+            --cmake-args -DBUILD_TESTING=OFF
+      - name: Node import smoke test
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash && source install/setup.bash
+          python3 -c "import aether_integrity_monitor.monitor_node, aether_integrity_monitor.core"
+          python3 -c "import aether_sim_replay.replay_node, aether_degradation_manager.manager_node"
+          python3 -c "import aether_health_cockpit.cockpit_node, aether_sensor_bridge.bridge_node; from aether_msgs.msg import IntegrityState, ProtectionLevel"
+          python3 -c "import aether_flight.flight_director"
