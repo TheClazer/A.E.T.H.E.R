@@ -4,9 +4,15 @@ Everything is built and measured. This is the operations card for the 3-hour fin
 
 ## Pre-flight (do once, ~10 min before)
 
+The demo runs as **root** in WSL (gz sensor rendering only works as root on this
+rig; the launcher borrows the WSLg display automatically). Get a root shell first:
+
+- from **Windows PowerShell**: `wsl -u root`
+- from an **already-open Ubuntu terminal**: `sudo -i`  (`wsl` is a Windows command — it won't exist inside Ubuntu)
+
+Then:
+
 ```bash
-wsl -u root                    # ROOT terminal: gz sensor rendering only works as root
-                               # on this rig (the launcher borrows the WSLg display)
 cd /root/aether                # the demo workspace (synced from the repo)
 source /opt/ros/lyrical/setup.bash
 ./scripts/judge_demo.sh replay # smoke: Mission Control opens, buttons fire -> Ctrl-C
