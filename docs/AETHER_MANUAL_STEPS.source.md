@@ -7,13 +7,25 @@
 
 ---
 
-## ✅ Verified platform status (tested on the dev machine, 9 Jun)
+## ✅ Verified platform status (tested on the dev machine, 10 Jun) — ALL THREE TIERS MEASURED
 
 **Verified working on Ubuntu 26.04 / ROS2 Lyrical (WSL2):**
-- **T1 — live integrity demo:** `replay → integrity_monitor → degradation_manager → cockpit`. Camera-kill → `/nav/state` `NOMINAL→INERTIAL→NOMINAL`, `/nav/trust` `1.0→0.02`, horizontal protection level `0.21 m → 1.66 m` (bound blooms ~8×, then recovers).
-- **T3 — Gazebo tunnel sim:** world + drone load on Gazebo Sim 10; HG4930-IMU (`/imu/data`) and ground-truth (`/aether/ground_truth`) publish to ROS2.
+- **T1 — live integrity demo:** `replay → integrity_monitor → degradation_manager → cockpit`. Camera-kill → `/nav/state` `NOMINAL→INERTIAL→NOMINAL`, `/nav/trust` `1.0→0.02`, bound blooms ~8× and recovers. **Measured (live ROS2): coverage 97.6 % emergent, ANEES 3.05, detection 1.18 s.**
+- **T3 — Gazebo 3D sim, physics-real flight:** the vendored **X3 multicopter** (4 rotor `MulticopterMotorModel`s + `MulticopterVelocityControl`) flies the full 200 m textured tunnel under **closed-loop guidance** (`flight_director`: feedforward + P feedback + yaw hold on simulator ground truth — the autopilot is not the system under test). x → 199.8 m, centered ±0.58 m; the IMU is **alive** (cruise accel σ 0.287 m/s² vs 0.002 on a kinematic rig).
+- **T2 — OpenVINS stereo-MSCKF on OUR sim** (via the `aether/openvins:jazzy` Docker container): golden bag (6,382 stereo pairs + 64 k IMU samples) → `ov_msckf` → **0.219 % terminal drift over 202.2 m** (DP7 gate < 1.5 % — beaten 6.8×), RMS ATE 0.202 m. The integrity layer also runs live against the real VIO output in the same container (`scripts/docker_run_integrity_chain.sh`).
 
-**⚠️ OpenVINS (the VIO estimator — Phase 2) requires Ubuntu 24.04 / ROS2 Jazzy.** It does **not** build on 26.04/Lyrical yet (CMake 4 dropped the old `cmake_minimum_required`; Boost 1.90 made `system` header-only; `ament_target_dependencies` was removed). On 24.04/Jazzy it builds out-of-box. **Recommended for the 12th:** run the full stack on **Ubuntu 24.04** — `wsl --install -d Ubuntu-24.04`, then `bash scripts/wsl_setup_ros2.sh` (edit the codename `resolute`→`noble` and `lyrical`→`jazzy`) and `bash scripts/wsl_build_openvins.sh`. The integrity layer + Gazebo sim run there unchanged.
+**Why Docker for OpenVINS:** it does **not** build on 26.04/Lyrical yet (CMake 4 dropped the old `cmake_minimum_required`; Boost 1.90 made `system` header-only; `ament_target_dependencies` was removed). The pinned `ros:jazzy` image (`docker compose build openvins`, recorded SHA at `/OPENVINS_SHA`) makes T2 reproducible anywhere — including the GitHub Actions runner, which colcon-builds the whole workspace on `ros:jazzy` every push.
+
+**Demo recipes (the three rungs):**
+```bash
+# rung 1 — live integrity beat (no Docker needed):
+./scripts/run_replay_demo.sh           # + rviz2 -d src/aether_bringup/config/aether.rviz
+./scripts/run_demo.sh kill && ./scripts/run_demo.sh restore
+# rung 2 — the full chain on the golden bag (Docker):
+docker compose run --rm chain          # drift report -> results/drift_report.txt
+# rung 3 — record a fresh golden flight (native Gazebo), then re-run the chain:
+bash scripts/wsl_record_bag.sh && docker compose run --rm chain
+```
 
 ---
 

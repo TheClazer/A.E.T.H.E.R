@@ -1,0 +1,4 @@
+[INFO] [1781088254.557406439] [degradation_manager]: A.E.T.H.E.R degradation_manager up.
+[WARN] [1781088254.725336586] [degradation_manager]: NAV MODE -> NOMINAL  (trust=1.00, HPL=0.08 m, outage=0.05 s)
+[WARN] [1781088272.483309742] [degradation_manager]: NAV MODE -> DEGRADED  (trust=0.10, HPL=0.48 m, outage=17.80 s)
+[WARN] [1781088272.820582943] [degradation_manager]: NAV MODE -> INERTIAL  (trust=0.41, HPL=0.14 m, outage=18.15 s)

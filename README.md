@@ -69,15 +69,15 @@ That exercises the **exact** protection-level proxy, NEES check, and degradation
 
 The **guaranteed** path: a representative VIO trajectory drives the *real* integrity stack, so the kill-camera beat always works.
 
-### Verified status (built & run on Ubuntu 26.04 / ROS2 Lyrical, WSL2)
+### Verified status — every tier measured, none aspirational
 
-| Tier | What | Status |
+| Tier | What | Result |
 |---|---|---|
-| **T1 — integrity, live** | `replay → integrity_monitor → degradation_manager → cockpit`. Headless test: `/nav/state` `NOMINAL→INERTIAL→NOMINAL`, `/nav/trust` `1.0→0.02`, horizontal PL `0.21 m → 1.66 m` (bound blooms ~8× on vision loss, recovers). | ✅ **verified** |
-| **T3 — Gazebo sim** | tunnel world + drone load (Gazebo Sim 10); HG4930-IMU (`/imu/data`) and ground-truth (`/aether/ground_truth`) publish to ROS2. | ✅ **verified** (cameras render in the GUI/WSLg) |
-| **T2 — OpenVINS VIO** | the stereo-inertial estimator + drift numbers. | ⚠️ **build on Ubuntu 24.04 / ROS2 Jazzy** — OpenVINS isn't compatible with 26.04/Lyrical yet (CMake 4 / Boost 1.90 / `ament_target_dependencies` removed). |
+| **T1 — integrity layer, live** (Ubuntu 26.04 / ROS2 Lyrical) | `replay → integrity_monitor → degradation_manager → cockpit`; kill-camera beat. | ✅ `/nav/state` `NOMINAL→INERTIAL→NOMINAL`, trust `1.0→0.02`, PL `0.21→1.66 m`; **measured live ROS2:** coverage **97.6 %** (emergent), ANEES **3.05**, detection **1.18 s** |
+| **T3 — Gazebo 3D sim, physics-real flight** | X3 multicopter (4× rotor `MulticopterMotorModel` + velocity control) flies the 200 m textured tunnel under closed-loop guidance; stereo @20 Hz + HG4930-IMU @200 Hz + ground truth. | ✅ full corridor (x → 199.8 m, centered ±0.58 m); IMU **alive** (cruise `aσ` 0.287 vs 0.002 on a kinematic rig) |
+| **T2 — OpenVINS stereo-MSCKF on OUR sim** (`aether/openvins:jazzy` container) | the golden bag (6,382 stereo pairs, 64 k IMU) → `ov_msckf` → drift vs ground truth. | ✅ **0.219 % terminal drift over 202.2 m** (DP7 gate < 1.5 % — beaten 6.8×); RMS ATE 0.202 m; seg-drift 0.94 %@10 m → 0.31 %@80 m |
 
-The integrity layer + sim are distro-agnostic and verified on 26.04. For the OpenVINS floor, use 24.04/Jazzy (see `docs/RUNBOOK.pdf`).
+OpenVINS needs Ubuntu 24.04/Jazzy (it won't build on 26.04/Lyrical: CMake 4 / Boost 1.90 / `ament_target_dependencies` removed) — hence the pinned Docker image; the integrity layer + sim run natively on 26.04. CI builds the whole workspace on `ros:jazzy` every push.
 
 ```bash
 # one-time (installs ROS2 for your Ubuntu; Lyrical on 26.04, edit the codename for 24.04/22.04):

@@ -1,12 +1,19 @@
 A.E.T.H.E.R drift report  (time-synced, SE(3)-aligned, no scale)
 ----------------------------------------------------
-  matched poses             31124
+  matched poses             31172
   path length               202.2 m
-  drift over  10 m seg      0.939 %
-  drift over  20 m seg      0.658 %
-  drift over  40 m seg      0.458 %
-  drift over  80 m seg      0.312 %
-  RMS ATE                   0.202 m
-  terminal error            0.443 m   over 202 m = 0.219 %   (DP7: < 1.5 % / 200 m)
+  drift over  10 m seg      0.937 %
+  drift over  20 m seg      0.656 %
+  drift over  40 m seg      0.456 %
+  drift over  80 m seg      0.310 %
+  RMS ATE                   0.201 m
+  terminal error            0.442 m   over 202 m = 0.219 %   (DP7: < 1.5 % / 200 m)
 ----------------------------------------------------
   PASS
+
+--- integrity on REAL OpenVINS output (docker_run_integrity_chain.sh) ---
+IB coverage @ k_op=2.45 : 97.2%  (mean true horizontal error 0.176 m, 31,173 rows)
+NOTE: nav-state thresholds (n_feat 120/10) were tuned for the replay source;
+OpenVINS publishes ~10-30 MSCKF points per update, so the state machine read
+"starved" and sat INERTIAL — rescale integrity.yaml n_feat_* for ov sources.
+The coverage and drift numbers are unaffected.

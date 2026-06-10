@@ -33,7 +33,10 @@ class Recorder(Node):
         self.create_subscription(Float32, '/nav/trust', lambda m: setattr(self, 'trust', m.data), 10)
         self.create_subscription(String, '/nav/state', lambda m: setattr(self, 'state', m.data), 10)
         self.create_subscription(ProtectionLevel, '/nav/integrity_bound', self.on_pl, 10)
+        # estimate: namespaced on stock launches, ROOT-namespaced on the upstream
+        # ov_msckf build in the chain container — subscribe both, rows fire on either
         self.create_subscription(Odometry, '/ov_msckf/odomimu', self.on_est, 20)
+        self.create_subscription(Odometry, '/odomimu', self.on_est, 20)
         self.create_subscription(Odometry, '/aether/ground_truth', self.on_gt, 20)
 
     def on_pl(self, m):

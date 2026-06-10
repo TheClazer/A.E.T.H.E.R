@@ -1,0 +1,2 @@
+[INFO] [1781088254.680263869] [integrity_monitor]: A.E.T.H.E.R integrity_monitor up (Python proxy path).
+[WARN] [1781088273.020145924] [integrity_monitor]: solution-separation fault: sep=0.62 m (11.7 sigma) — capping trust, bound invalid
