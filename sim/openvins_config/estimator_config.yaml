@@ -36,7 +36,8 @@ try_zupt: false
 # ===================================================================
 # initialization
 init_window_time: 2.0
-init_imu_thresh: 0.5        # kinematic rig accelerates gently; default 1.5 never trips
+init_imu_thresh: 0.25       # measured: soft takeoff std|a|=0.30 missed 0.5; the sharp
+                            # punch gives ~0.6+, parked sensor noise is 0.002 -> 0.25 is safe
 init_max_disparity: 10.0
 init_max_features: 50
 

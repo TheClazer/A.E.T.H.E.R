@@ -36,3 +36,18 @@ services:
       - .:/aether
     working_dir: /aether
     command: bash scripts/run_measured_report.sh
+
+  # One-shot full chain: golden Gazebo bag -> OpenVINS stereo MSCKF -> KITTI
+  # %-drift report vs ground truth (results/drift_report.txt).
+  chain:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.openvins
+    image: aether/openvins:jazzy
+    network_mode: host
+    volumes:
+      - .:/aether
+    working_dir: /aether
+    command: >
+      bash -c "tr -d '\r' < /aether/scripts/docker_run_chain.sh > /tmp/chain.sh
+               && bash /tmp/chain.sh"

@@ -28,8 +28,11 @@ python3 /aether/eval/odom_stream_to_tum.py /aether/ground_truth "$OUT/gt.txt" > 
 S2=$!
 sleep 6
 
-echo "=== [2/3] play the golden bag (rate 1.0) ==="
-ros2 bag play "$BAG" > /dev/null 2>&1 || ros2 bag play "$BAG" --storage mcap > /dev/null 2>&1
+echo "=== [2/3] play the golden bag (rate 1.0, trimmed past the hover tail) ==="
+# flight profile ends ~150 s into the bag; the rest is a parked hover — skip it
+PLAY_SECS="${PLAY_SECS:-175}"
+ros2 bag play "$BAG" --playback-duration "$PLAY_SECS" > /dev/null 2>&1 \
+  || ros2 bag play "$BAG" --storage mcap --playback-duration "$PLAY_SECS" > /dev/null 2>&1
 sleep 4
 
 echo "=== [3/3] evaluate ==="

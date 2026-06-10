@@ -57,6 +57,10 @@ pytest test_core.py -q         # proves the bound covers the truth 95%+
 That exercises the **exact** protection-level proxy, NEES check, and degradation state machine that the ROS2 `integrity_monitor` uses live — so the algorithm is validated without needing Ubuntu/Gazebo.
 
 <p align="center">
+<img src="docs/figures/aether_demo.gif" width="96%">
+</p>
+<p align="center"><i>Kill-the-camera beat: A.E.T.H.E.R's oriented protection level blooms through the outage and keeps the truth inside — while the naive fixed-σ ghost (dotted) stays confidently small and loses it.</i></p>
+<p align="center">
 <img src="docs/figures/breathing_ellipse.png" width="48%">
 <img src="docs/figures/ib_coverage.png" width="48%">
 </p>

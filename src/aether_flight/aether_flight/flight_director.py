@@ -55,15 +55,19 @@ class FlightDirector(Node):
             pass                  # hover hold: zero-velocity command (rotors carry weight,
                                   # IMU averages ~g) so OpenVINS static init can converge
         elif t < self.hold + 2.0:
-            # the punch: climb + forward ramp = the accel jerk static init detects,
-            # and it lifts the rig to cruise altitude in one move
+            # the punch: a SHARP climb step (accel-norm std ~0.6 over the init
+            # window — comfortably above init_imu_thresh 0.25) + forward ramp.
+            # Net climb ~0.8 m to cruise altitude.
             s = t - self.hold
-            cmd.linear.x = 1.5 * min(s / 0.6, 1.0)
-            cmd.linear.z = 0.5 if s < 1.6 else 0.0      # ~0.8 m climb
+            cmd.linear.x = 1.5 * min(s / 0.4, 1.0)
+            cmd.linear.z = 1.0 if s < 0.7 else (0.15 if s < 1.4 else 0.0)
         elif t < self.duration:
             tc = t - (self.hold + 2.0)
             cmd.linear.x = 1.5
-            cmd.linear.y = 0.35 * math.sin(0.4 * tc)
+            # COSINE weave: integral = (0.25/0.5)*sin -> y oscillates +/-0.5 m,
+            # symmetric about the corridor centerline (the sin() form drifted
+            # one-sided to +1.75 m and clipped the wall - the t=24s crash).
+            cmd.linear.y = 0.25 * math.cos(0.5 * tc)
             cmd.linear.z = 0.08 * math.sin(0.9 * tc)
         elif not self.stopped:
             self.stopped = True
