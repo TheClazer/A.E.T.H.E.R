@@ -49,7 +49,7 @@ ros2 run ros_gz_bridge parameter_bridge \
   "/camera/right/image_raw@sensor_msgs/msg/Image[gz.msgs.Image" \
   "/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU" \
   "/aether/ground_truth@nav_msgs/msg/Odometry[gz.msgs.Odometry" \
-  "/model/aether_drone/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist" \
+  "/X3/gazebo/command/twist@geometry_msgs/msg/Twist]gz.msgs.Twist" \
   --ros-args -p use_sim_time:=true > ~/bridge_rec.log 2>&1 &
 BR=$!
 sleep 5
@@ -57,7 +57,8 @@ sleep 5
 echo "[3/4] start recorder (${RECORD_SECS}s) + flight_director"
 rm -rf "$WS/bags/tunnel_run"; mkdir -p "$WS/bags"
 # (no sim-time flag needed: header stamps carry sim time and /clock is recorded)
-timeout -k 10 "$((RECORD_SECS + 8))" ros2 bag record -o "$WS/bags/tunnel_run" --topics \
+# wall-clock cap = 2x the sim-time profile (rotor physics runs at RTF ~0.6 headless)
+timeout -k 10 "$((RECORD_SECS * 2 + 20))" ros2 bag record -o "$WS/bags/tunnel_run" --topics \
   /camera/left/image_raw /camera/right/image_raw /imu/data \
   /aether/ground_truth /clock > ~/bag_rec.log 2>&1 &
 REC=$!
@@ -66,10 +67,10 @@ sleep 2
 # prefer the installed entry point; fall back to running the module from source
 source "$WS/install/setup.bash" 2>/dev/null || true
 if ros2 pkg prefix aether_flight > /dev/null 2>&1; then
-  timeout -k 10 "$((RECORD_SECS + 20))" ros2 run aether_flight flight_director \
+  timeout -k 10 "$((RECORD_SECS * 2 + 30))" ros2 run aether_flight flight_director \
     --ros-args -p use_sim_time:=true -p duration:="${RECORD_SECS}.0" > ~/flight_rec.log 2>&1 &
 else
-  timeout -k 10 "$((RECORD_SECS + 20))" python3 "$WS/src/aether_flight/aether_flight/flight_director.py" \
+  timeout -k 10 "$((RECORD_SECS * 2 + 30))" python3 "$WS/src/aether_flight/aether_flight/flight_director.py" \
     --ros-args -p use_sim_time:=true -p duration:="${RECORD_SECS}.0" > ~/flight_rec.log 2>&1 &
 fi
 FLY=$!

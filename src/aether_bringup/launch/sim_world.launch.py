@@ -31,7 +31,7 @@ def generate_launch_description():
             '/imu/data@sensor_msgs/msg/Imu[gz.msgs.IMU',
             '/aether/ground_truth@nav_msgs/msg/Odometry[gz.msgs.Odometry',
             # ROS -> GZ (note ']' direction): velocity commands for the rig
-            '/model/aether_drone/cmd_vel@geometry_msgs/msg/Twist]gz.msgs.Twist',
+            '/X3/gazebo/command/twist@geometry_msgs/msg/Twist]gz.msgs.Twist',
         ],
         parameters=[{'use_sim_time': True}], output='screen')
 

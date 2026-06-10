@@ -15,7 +15,29 @@ imu0:
   accelerometer_random_walk: 5.0e-04     # [m/s^3/sqrt(Hz)]
   gyroscope_noise_density: 1.6968e-04    # [rad/s/sqrt(Hz)]
   gyroscope_random_walk: 1.2e-05         # [rad/s^2/sqrt(Hz)]
-  model: calibrated
+  model: "calibrated"
   rostopic: /imu/data
   time_offset: 0.0
   update_rate: 200.0
+  # IMU intrinsic-model matrices (required by the parser; identity = no scale/skew
+  # or g-sensitivity error -- true for the sim's ideal axes).
+  Tw:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  R_IMUtoGYRO:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  Ta:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  R_IMUtoACC:
+    - [ 1.0, 0.0, 0.0 ]
+    - [ 0.0, 1.0, 0.0 ]
+    - [ 0.0, 0.0, 1.0 ]
+  Tg:
+    - [ 0.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0 ]
+    - [ 0.0, 0.0, 0.0 ]

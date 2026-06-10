@@ -7,7 +7,7 @@
 # with the headline numbers (eval/make_measured_figures.py).
 #
 # Run:  bash scripts/run_measured_report.sh [results/metrics.csv]
-set -u
+# NOTE: no set -e/-u — ROS setup scripts reference unbound vars; cleanup must always run
 cd "$(dirname "$0")/.."
 CSV="${1:-results/metrics.csv}"
 
