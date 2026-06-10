@@ -15,7 +15,10 @@
 #   ./scripts/judge_demo.sh proof    print the measured results + open the figures
 #
 # First run builds the workspace automatically (~2 min).
-set -e
+# NOTE: deliberately NO `set -e` — this script clears stale Gazebo with `pkill`
+# (which "fails" when nothing is running) and uses `[ test ] && break` in the
+# retry loop; under errexit both abort the script mid-launch. All real failures
+# are handled explicitly below.
 cd "$(dirname "$0")/.."
 source /opt/ros/lyrical/setup.bash 2>/dev/null || source /opt/ros/jazzy/setup.bash
 
@@ -37,9 +40,11 @@ fi
 build_ws() {
   if [ ! -f install/setup.bash ] || [ src -nt install ]; then
     echo "[judge_demo] building the workspace (first run only) ..."
-    colcon build --packages-select aether_msgs > /dev/null
+    colcon build --packages-select aether_msgs > /dev/null \
+      || { echo "[judge_demo] aether_msgs build failed"; exit 1; }
     source install/setup.bash
-    colcon build > /dev/null
+    colcon build > /dev/null \
+      || { echo "[judge_demo] workspace build failed"; exit 1; }
   fi
   source install/setup.bash
 }
@@ -50,7 +55,7 @@ case "${1:-help}" in
     cat <<'TXT'
 ┌────────────────────────────────────────────────────────────────────┐
 │ LIVE 3D SCENE — what to watch                                      │
-│  · Gazebo window: the X3 quad patrolling the 200 m textured tunnel │
+│  · Gazebo window: the X3 quad patrolling the 200 m tunnel          │
 │  · RViz: green truth trail vs blue estimate trail; breathing bound │
 │    ellipse; grey naive ghost; the LEFT CAMERA pane                 │
 │  · MISSION CONTROL: state banner + trust + clickable fault rail    │

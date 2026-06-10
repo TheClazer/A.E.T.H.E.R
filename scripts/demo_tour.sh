@@ -28,12 +28,17 @@ sleep 12
 say "FAULT 2 · IMU BIAS — the published IMU lies (+0.3 m/s2) while vision looks
   healthy. The feature count CANNOT catch this; watch SOL SEP rise until the
   solution-separation test trips (trust capped, bound flagged invalid)"
-set_bool /inject/imu_bias true
-sleep 22
-
-say "RECOVERY — bias cleared"
-set_bool /inject/imu_bias false
-sleep 10
+RESP=$(ros2 service call /inject/imu_bias std_srvs/srv/SetBool "{data: true}" 2>/dev/null)
+if echo "$RESP" | grep -q "success=True"; then
+  sleep 22
+  say "RECOVERY — bias cleared"
+  set_bool /inject/imu_bias false
+  sleep 10
+else
+  echo "  (auto-skipped: this scene publishes the REAL Gazebo IMU, so we don't"
+  echo "   fake its output — demo this beat on the replay rig: judge_demo.sh replay)"
+  sleep 3
+fi
 
 say "FAULT 3 · FEATURE STARVATION — a feature-poor stretch (~30 feats): state
   DEGRADED, trust AMBER, bound widens moderately. Degradation, not panic."

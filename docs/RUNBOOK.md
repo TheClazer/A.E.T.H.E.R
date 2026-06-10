@@ -25,10 +25,10 @@ Docker Desktop must be running (for the `chain` scene). Close heavy apps; WSLg +
 ```bash
 ./scripts/judge_demo.sh live3d
 ```
-Windows that open: **Gazebo** (X3 quad patrolling the textured tunnel), **RViz** (truth vs estimate trails, breathing bound, naive ghost, live camera pane), **Mission Control** (state banner + clickable fault rail).
+Windows that open: **Gazebo** (X3 quad patrolling the tunnel), **RViz** (truth vs estimate trails, breathing bound, naive ghost, live camera pane), **Mission Control** (state banner + clickable fault rail — it may open BEHIND the Gazebo window; Alt-Tab to find it).
 - Let it fly nominal ~30 s. Point at: green trail vs blue trail hugging each other; tight ellipse; camera pane streaming.
 - **Hand the judge the mouse**: *"Click KILL CAMERA."* → camera pane freezes dark (the real image stream stops), trust collapses, INERTIAL in <1 s, the ellipse blooms and visibly keeps the red truth dot inside — the grey naive ghost stays small and goes red (lost).
-- **RESTORE** → re-convergence in ~2 s. Then **IMU BIAS** (*"the camera looks fine — watch SOL SEP catch the lie"*), **STARVE FEATS** (graceful amber), **UWB AID** during a kill (*"layered aiding, the HANA pattern"*).
+- **RESTORE** → re-convergence in ~2 s. Then **STARVE FEATS** (graceful amber), **UWB AID** during a kill (*"layered aiding, the HANA pattern"*). The **IMU BIAS** button is replay-rig-only — the live scene publishes the *real* Gazebo IMU, so we don't fake its output. Demo it on the replay rig (scene `replay`): *"the camera looks fine — watch SOL SEP catch the lie."*
 - Say the spine once, here: *"When the camera dies, our drift bound still covers the true position 95%+ of the time — and we know within half a second."*
 
 ### 2 · The proof — real OpenVINS (start it BEFORE talking, ~6 min runtime)
