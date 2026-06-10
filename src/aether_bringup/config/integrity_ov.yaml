@@ -1,0 +1,25 @@
+integrity_monitor:
+  ros__parameters:
+    # ===== OpenVINS-sourced profile =====
+    # Same audited k-factors as integrity.yaml; only the SOURCE-dependent scales
+    # change. OpenVINS /points_msckf carries the features used per MSCKF update
+    # (~10-30 when healthy) -- not a raw tracker count (~120 on the replay rig).
+    # Its global covariance also grows along a one-way traverse (no loop
+    # closures), so the trust normalizer is wider. Measured from
+    # results/integrity_chain.csv: sigma 0.8 m early -> 4.0 m late.
+    k_operational: 2.4477      # 95% 2-D containment (scipy: sqrt(chi2.ppf(0.95,2)))
+    k_dal_c: 6.7374            # DAL-C, P_HMI=1e-5/hr @ 20 Hz (exceedance 1.39e-10)
+    lambda_md: 45.0
+    rate_hz: 20.0
+    n_feat_nominal: 30.0       # healthy ov update uses ~10-30 features
+    tr_nominal: 4.0            # ~ healthy-flight trace(P) scale for ov (m^2)
+    n_feat_degraded: 12.0
+    n_feat_inertial: 3.0
+    n_feat_reacquire: 8.0
+    debounce_s: 0.3
+    tr_rate_max: 10.0          # ov covariance grows ~0.25 m^2/s on a loop-free
+                               # traverse -- growth alone is NOT a fault here
+    n_feat_window_s: 1.0       # ov marginalizes MSCKF features in bursts; health
+                               # signal = max over a 1 s window, not the raw width
+    nees_window: 50
+    nees_dim: 3

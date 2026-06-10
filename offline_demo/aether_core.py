@@ -138,10 +138,17 @@ def nees_gate(conf: float = 0.95, dim: int = 3) -> tuple[float, float]:
 
 
 def trust_score(n_feat: float, trace_pos: float,
-                w_feat: float = 0.6, w_cov: float = 0.4) -> float:
-    """Continuous 0..1 trust: feature richness + covariance tightness."""
-    f = min(n_feat / N_NOMINAL, 1.0)
-    g = min(TR_NOMINAL / max(trace_pos, 1e-9), 1.0)
+                w_feat: float = 0.6, w_cov: float = 0.4,
+                n_nominal: float = N_NOMINAL, tr_nominal: float = TR_NOMINAL) -> float:
+    """Continuous 0..1 trust: feature richness + covariance tightness.
+
+    ``n_nominal`` / ``tr_nominal`` are SOURCE-dependent scales: the replay rig
+    publishes ~120 raw tracker features and tight covariance; real OpenVINS
+    reports ~10-30 per-update MSCKF features and a covariance that legitimately
+    grows along a one-way traverse (see config/integrity_ov.yaml).
+    """
+    f = min(n_feat / n_nominal, 1.0)
+    g = min(tr_nominal / max(trace_pos, 1e-9), 1.0)
     return float(np.clip(w_feat * f + w_cov * g, 0.0, 1.0))
 
 
@@ -166,13 +173,28 @@ class DegradationStateMachine:
     INERTIAL = "INERTIAL"
     RE_ACQUIRE = "RE_ACQUIRE"
 
-    def __init__(self, debounce_s: float = DEBOUNCE_S):
+    def __init__(self, debounce_s: float = DEBOUNCE_S,
+                 n_inertial: float = N_INERTIAL,
+                 n_reacquire: float = N_REACQUIRE,
+                 n_degraded: float = N_DEGRADED,
+                 tr_rate_max: float = 0.0):
+        """All gates are SOURCE-dependent (replay rig vs real OpenVINS — see
+        config/integrity_ov.yaml). ``tr_rate_max`` is the covariance-trace
+        growth rate (m^2/s) still considered nominal: 0.0 for the replay rig
+        (covariance shrinks under healthy vision), >0 for real OpenVINS whose
+        global covariance legitimately grows along a loop-closure-free traverse.
+        """
         self.state = self.NOMINAL
         self.debounce_s = debounce_s
-        self._t_below = None  # time at which n_feat first dropped below N_INERTIAL
+        self.n_inertial = n_inertial
+        self.n_reacquire = n_reacquire
+        self.n_degraded = n_degraded
+        self.tr_rate_max = tr_rate_max
+        self._t_below = None  # time at which n_feat first dropped below n_inertial
 
     def update(self, n_feat: float, trace_rate: float, t_now: float) -> str:
-        if n_feat < N_INERTIAL:
+        cov_ok = trace_rate <= self.tr_rate_max
+        if n_feat < self.n_inertial:
             if self._t_below is None:
                 self._t_below = t_now
             if (t_now - self._t_below) >= self.debounce_s:
@@ -182,13 +204,13 @@ class DegradationStateMachine:
         else:
             self._t_below = None
             if self.state == self.INERTIAL:
-                if n_feat >= N_REACQUIRE:
+                if n_feat >= self.n_reacquire:
                     self.state = self.RE_ACQUIRE
             elif self.state == self.RE_ACQUIRE:
-                if n_feat >= N_DEGRADED and trace_rate <= 0.0:
+                if n_feat >= self.n_degraded and cov_ok:
                     self.state = self.NOMINAL
             else:
-                self.state = self.NOMINAL if (n_feat >= N_DEGRADED and trace_rate <= 0.0) else self.DEGRADED
+                self.state = self.NOMINAL if (n_feat >= self.n_degraded and cov_ok) else self.DEGRADED
         return self.state
 
 

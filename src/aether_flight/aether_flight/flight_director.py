@@ -45,11 +45,22 @@ class FlightDirector(Node):
         self.declare_parameter('cruise_alt', 0.8)  # corridor cruise altitude (m)
         self.declare_parameter('kp_pos', 0.9)      # P gain, lateral/vertical hold
         self.declare_parameter('kp_yaw', 0.8)      # P gain, yaw hold
+        # patrol mode (the judge demo): instead of a one-way 200 m mission that
+        # ends parked, shuttle between x = patrol_min and x = patrol_max forever —
+        # continuous visible motion that never leaves the textured tunnel.
+        self.declare_parameter('patrol', False)
+        self.declare_parameter('patrol_min', 5.0)
+        self.declare_parameter('patrol_max', 90.0)
         self.duration = float(self.get_parameter('duration').value)
         self.hold = float(self.get_parameter('hold').value)
         self.alt = float(self.get_parameter('cruise_alt').value)
         self.kp = float(self.get_parameter('kp_pos').value)
         self.kyaw = float(self.get_parameter('kp_yaw').value)
+        self.patrol = bool(self.get_parameter('patrol').value)
+        self.patrol_min = float(self.get_parameter('patrol_min').value)
+        self.patrol_max = float(self.get_parameter('patrol_max').value)
+        self.patrol_dir = 1.0      # +1 = down-tunnel, -1 = homeward
+        self.gt_x = None
 
         self.pub = self.create_publisher(Twist, '/X3/gazebo/command/twist', 10)
         self.create_subscription(Odometry, '/aether/ground_truth', self.on_gt, 20)
@@ -67,6 +78,7 @@ class FlightDirector(Node):
         yaw = math.atan2(2.0 * (q.w * q.z + q.x * q.y),
                          1.0 - 2.0 * (q.y * q.y + q.z * q.z))
         self.gt = (p.y, p.z, yaw)
+        self.gt_x = p.x
 
     def tick(self):
         now = self.get_clock().now()
@@ -87,14 +99,22 @@ class FlightDirector(Node):
                 cmd.linear.z = 0.0
             else:
                 cmd.linear.z = 1.0 if s < 0.7 else 0.3
-        elif t < self.duration:
+        elif self.patrol or t < self.duration:
             tc = t - (self.hold + 2.0)
             # references: +/-0.5 m weave about the centerline, gentle altitude bob
             y_ref = 0.5 * math.sin(0.5 * tc)
             dy_ref = 0.25 * math.cos(0.5 * tc)            # feedforward = d(y_ref)/dt
             z_ref = self.alt + 0.10 * math.sin(0.9 * tc)
             dz_ref = 0.09 * math.cos(0.9 * tc)
-            cmd.linear.x = 1.5
+            if self.patrol and self.gt_x is not None:
+                # shuttle: flip direction at the patrol fence posts
+                if self.patrol_dir > 0 and self.gt_x >= self.patrol_max:
+                    self.patrol_dir = -1.0
+                    self.get_logger().info('patrol: turning back (x=%.1f)' % self.gt_x)
+                elif self.patrol_dir < 0 and self.gt_x <= self.patrol_min:
+                    self.patrol_dir = 1.0
+                    self.get_logger().info('patrol: heading out (x=%.1f)' % self.gt_x)
+            cmd.linear.x = 1.5 * (self.patrol_dir if self.patrol else 1.0)
             if self.gt is not None:
                 y, z, yaw = self.gt
                 cmd.linear.y = clamp(dy_ref + self.kp * (y_ref - y), -0.7, 0.7)

@@ -9,6 +9,24 @@
 
 ---
 
+## ✅ MEASURED RESULTS (build complete — 10 Jun)
+
+> The design below was **built and measured**. Every number has a committed artifact.
+
+| Claim | Measured | Provenance |
+|---|---|---|
+| Real VIO drift — OpenVINS stereo-MSCKF on OUR 202.2 m Gazebo tunnel flight | **0.219 %** terminal (DP7 < 1.5 % — beaten 6.8×) · RMS ATE 0.202 m · seg-drift 0.94 %@10 m → 0.31 %@80 m | `results/drift_report.txt` (rerun: `docker compose run chain`) |
+| Integrity bound honest on the **real** VIO output | covers the true error **97.2 %** of 31,173 live verdicts | `results/integrity_chain.csv` |
+| Live integrity rig (real ROS2, injected faults) | coverage **97.6 %** emergent · **ANEES 3.05** (χ²₃ ≈ 3) · detection **1.18 s** | `results/metrics.csv`, `docs/figures/measured_*.png` |
+| Physics-real 3D flight (X3 multicopter, rotor forces, closed-loop guidance) | full 200 m corridor, centered ±0.58 m, IMU alive (cruise σ 0.287 m/s²) | `bags/tunnel_mini` (GT+IMU, committed) |
+| Workspace quality | CI green: lint + tests + full `ros:jazzy` colcon build every push | GitHub Actions |
+
+**Judge-facing demo scenes** (see `docs/JUDGES.md`, `docs/RUNBOOK.md`): `./scripts/judge_demo.sh live3d` — Gazebo 3D patrol + RViz + clickable **Mission Control** fault rail (kill camera / IMU bias / starvation / UWB aid); `tour` — narrated fault pass; `chain` — the real OpenVINS number regenerated live; `replay` — the guaranteed no-Gazebo rig.
+
+**Build deltas vs the plan below** (the plan called them risks; here is how they resolved): OpenVINS does not build on Ubuntu 26.04/Lyrical (CMake 4, Boost 1.90, removed `ament_target_dependencies`) → the real-VIO chain ships in a pinned `ros:jazzy` container; open-loop velocity flight drifted into the tunnel walls twice → the flight director is closed-loop on simulator ground truth (the autopilot is not the system under test); OpenVINS marginalizes MSCKF features in bursts → the monitor gained a 1 s feature-window and source-profile configs (`integrity.yaml` replay-rig scales / `integrity_ov.yaml` OpenVINS scales).
+
+---
+
 ## 0. Meta
 
 

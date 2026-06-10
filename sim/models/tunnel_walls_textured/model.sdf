@@ -1,0 +1,92 @@
+<?xml version="1.0" ?>
+<!-- A.E.T.H.E.R tunnel walls (world v2.1): the 200 m corridor, y = +/-2, height 3.
+     SIX long textured visuals (three zones per side) instead of forty 10 m panels:
+     ogre-next 2.3 has a texture-streaming race (TextureGpuManager::_waitFor ->
+     free(): invalid pointer) that 40 concurrent PBR loads kept tripping; six
+     loads of two files start reliably. feature_rich_wide.png is 4096x320 of
+     checker+noise (dense tracker food even stretched over 120 m); the deliberate
+     feature-starvation stretch at x = 120..140 uses near-uniform bare.png on
+     BOTH walls - where VIO quality collapses and the integrity layer earns its
+     keep. Textures generated deterministically (see git history of this file).
+     Collision is two full-length boxes; visuals carry no collision. -->
+<sdf version="1.10">
+  <model name="tunnel_walls_textured">
+    <static>true</static>
+    <link name="link">
+      <collision name="c_left">
+        <pose>100 2 1.5 0 0 0</pose>
+        <geometry><box><size>200 0.2 3</size></box></geometry>
+      </collision>
+      <collision name="c_right">
+        <pose>100 -2 1.5 0 0 0</pose>
+        <geometry><box><size>200 0.2 3</size></box></geometry>
+      </collision>
+      <visual name="wl_000_120">
+        <pose>60.0 2 1.5 0 0 0</pose>
+        <geometry><box><size>120 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls_textured/materials/textures/feature_rich_wide.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_120_140">
+        <pose>130.0 2 1.5 0 0 0</pose>
+        <geometry><box><size>20 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls_textured/materials/textures/bare.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wl_140_200">
+        <pose>170.0 2 1.5 0 0 0</pose>
+        <geometry><box><size>60 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls_textured/materials/textures/feature_rich_wide.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_000_120">
+        <pose>60.0 -2 1.5 0 0 0</pose>
+        <geometry><box><size>120 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls_textured/materials/textures/feature_rich_wide.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_120_140">
+        <pose>130.0 -2 1.5 0 0 0</pose>
+        <geometry><box><size>20 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls_textured/materials/textures/bare.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+      <visual name="wr_140_200">
+        <pose>170.0 -2 1.5 0 0 0</pose>
+        <geometry><box><size>60 0.2 3</size></box></geometry>
+        <material>
+          <diffuse>1 1 1 1</diffuse>
+          <pbr><metal>
+            <albedo_map>model://tunnel_walls_textured/materials/textures/feature_rich_wide.png</albedo_map>
+            <roughness>0.9</roughness><metalness>0.0</metalness>
+          </metal></pbr>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

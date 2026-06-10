@@ -1,21 +1,31 @@
 """
-A.E.T.H.E.R mission HUD — live matplotlib dashboard (console script ``mission_hud``).
+A.E.T.H.E.R MISSION CONTROL — live matplotlib dashboard + clickable fault rail
+(console script ``mission_hud``).
 
-Replaces the old Streamlit trust HUD (``streamlit_app.py``), which depended on
-the since-removed ``st.experimental_rerun`` and a browser. This one is a plain
-rclpy + matplotlib window that works over WSLg; if no GUI backend is available
-it falls back to Agg and saves ``docs/figures/hud_snapshot.png`` every 5 s.
+A plain rclpy + matplotlib window that works over WSLg; if no GUI backend is
+available it falls back to Agg and saves ``docs/figures/hud_snapshot.png``
+every 5 s (buttons disabled in that mode).
 
-Layout (2x2):
+Layout:
+  ── state banner (NOMINAL green / DEGRADED amber / INERTIAL red) ──
   (a) top-down XY — ground-truth path, VIO estimate path, the AETHER oriented
       protection-level ellipse, the naive ghost's frozen ellipse, truth dot;
   (b) trust strip-chart (0..1) with green/amber/red bands;
-  (c) horizontal PL vs |true horizontal error| strip-chart (live coverage view);
+  (c) horizontal PL vs |true horizontal error| strip-chart (live coverage);
   (d) big text: nav state, trust, PL, detection latency, solution separation.
+  ── button rail: KILL CAMERA · IMU BIAS · STARVE FEATURES · UWB AID ──
 
-Every subscription is optional — the HUD renders with any topic subset and
-shows dashes for whatever has not arrived yet. rclpy spins in a background
-thread; matplotlib animates at 5 Hz in the main thread.
+The buttons fire the demo fault services (async; no-ops with a console warning
+if a service has no server in the current scene):
+  /kill_camera                aether_msgs/KillCamera   (replay scene: replay_node;
+                                                        live3d scene: sensor_bridge)
+  /inject/imu_bias            std_srvs/SetBool
+  /inject/feature_starvation  std_srvs/SetBool
+  /uwb/enable                 std_srvs/SetBool
+
+Every subscription is optional — the HUD renders with any topic subset. rclpy
+spins in a background thread; matplotlib animates at 5 Hz in the main thread.
+``--ros-args -p source_label:='...'`` sets the honesty label in the header.
 """
 import collections
 import math
@@ -28,6 +38,7 @@ try:
     import matplotlib.pyplot as plt
     from matplotlib import animation
     from matplotlib.patches import Circle, Ellipse
+    from matplotlib.widgets import Button
 except Exception:  # allow import without matplotlib installed (CI lint)
     matplotlib = None
     plt = None
@@ -36,8 +47,10 @@ import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool, Float32, String
+from std_srvs.srv import SetBool
 from visualization_msgs.msg import Marker
 from aether_msgs.msg import ProtectionLevel
+from aether_msgs.srv import KillCamera
 
 # Mirrors the cockpit's frozen naive bound radius (m), used when the naive
 # ghost markers are not being published.
@@ -49,13 +62,24 @@ GREEN = '#2F7D4F'
 AMBER = '#C98A12'
 RED = '#C42A1C'
 GREY = '#70808F'
+INK = '#1B2A36'
+PAPER = '#F7F6F2'
+
+STATE_COLOR = {'NOMINAL': GREEN, 'DEGRADED': AMBER,
+               'INERTIAL': RED, 'RE_ACQUIRE': '#2A5DB0'}
+
+SPINE = ('"When the camera dies, our drift bound still covers the true position '
+         '95%+ of the time - and we know within half a second."')
 
 
 class HudNode(Node):
-    """Collects the integrity bus into plain attributes the plot thread reads."""
+    """Collects the integrity bus into plain attributes the plot thread reads,
+    and owns the fault-service clients the buttons fire."""
 
     def __init__(self):
         super().__init__('mission_hud')
+        self.declare_parameter('source_label', 'LIVE RIG · VIO-CLASS ERROR MODEL')
+        self.source_label = str(self.get_parameter('source_label').value)
         self.t0 = time.monotonic()
         self.gt = None                 # (x, y)
         self.est = None                # (x, y)
@@ -75,6 +99,11 @@ class HudNode(Node):
         self.trust_hist = collections.deque(maxlen=HIST)
         self.pl_hist = collections.deque(maxlen=HIST)
         self.err_hist = collections.deque(maxlen=HIST)
+        # button toggle states (local intent; the bus reflects the real effect)
+        self.camera_dead = False
+        self.bias_on = False
+        self.starve_on = False
+        self.uwb_on = False
 
         self.create_subscription(Odometry, '/aether/ground_truth', self._on_gt, 20)
         self.create_subscription(Odometry, '/ov_msckf/odomimu', self._on_odom, 20)
@@ -86,8 +115,52 @@ class HudNode(Node):
         self.create_subscription(Bool, '/fault/active', self._on_fault, 10)
         self.create_subscription(Marker, '/viz/naive_estimate', self._on_naive_est, 10)
         self.create_subscription(Marker, '/viz/naive_bound', self._on_naive_bound, 10)
-        self.get_logger().info('A.E.T.H.E.R mission_hud up (matplotlib, 5 Hz).')
 
+        self._cli_kill = self.create_client(KillCamera, '/kill_camera')
+        self._cli_bias = self.create_client(SetBool, '/inject/imu_bias')
+        self._cli_starve = self.create_client(SetBool, '/inject/feature_starvation')
+        self._cli_uwb = self.create_client(SetBool, '/uwb/enable')
+        self.get_logger().info('A.E.T.H.E.R MISSION CONTROL up (matplotlib, 5 Hz).')
+
+    # ---------------- fault buttons ----------------
+    def _fire(self, client, request, label):
+        if not client.service_is_ready():
+            self.get_logger().warning(
+                '%s: no service server in this scene (%s)' % (label, client.srv_name))
+            return False
+        client.call_async(request)
+        self.get_logger().info('%s -> %s' % (label, client.srv_name))
+        return True
+
+    def toggle_camera(self):
+        req = KillCamera.Request()
+        req.enable = not self.camera_dead
+        if self._fire(self._cli_kill, req, 'KILL CAMERA' if req.enable else 'RESTORE CAMERA'):
+            self.camera_dead = req.enable
+        return self.camera_dead
+
+    def toggle_bias(self):
+        req = SetBool.Request()
+        req.data = not self.bias_on
+        if self._fire(self._cli_bias, req, 'IMU BIAS %s' % ('ON' if req.data else 'OFF')):
+            self.bias_on = req.data
+        return self.bias_on
+
+    def toggle_starve(self):
+        req = SetBool.Request()
+        req.data = not self.starve_on
+        if self._fire(self._cli_starve, req, 'STARVATION %s' % ('ON' if req.data else 'OFF')):
+            self.starve_on = req.data
+        return self.starve_on
+
+    def toggle_uwb(self):
+        req = SetBool.Request()
+        req.data = not self.uwb_on
+        if self._fire(self._cli_uwb, req, 'UWB AID %s' % ('ON' if req.data else 'OFF')):
+            self.uwb_on = req.data
+        return self.uwb_on
+
+    # ---------------- bus callbacks ----------------
     def _t(self):
         return time.monotonic() - self.t0
 
@@ -141,20 +214,33 @@ def _fmt(value, fmt='%.2f', suffix=''):
     return (fmt % value) + suffix if value is not None else '--'
 
 
-def build_figure(node):
-    """Create the 2x2 dashboard; return (fig, refresh_fn)."""
-    fig, axs = plt.subplots(2, 2, figsize=(12, 8))
+def build_figure(node, interactive=True):
+    """Create the dashboard; return (fig, refresh_fn, widgets_keepalive)."""
+    fig = plt.figure(figsize=(13, 8.6))
+    fig.patch.set_facecolor(PAPER)
     try:
-        fig.canvas.manager.set_window_title('A.E.T.H.E.R mission HUD')
+        fig.canvas.manager.set_window_title('A.E.T.H.E.R MISSION CONTROL')
     except Exception:
         pass                            # headless backends have no window
-    fig.suptitle('A.E.T.H.E.R — navigation integrity HUD', fontsize=13)
+
+    # header: banner + honesty label; footer: the spine + button rail
+    banner = fig.text(0.5, 0.965, 'WAITING FOR TELEMETRY ...', ha='center',
+                      fontsize=19, family='monospace', fontweight='bold', color=GREY)
+    fig.text(0.5, 0.928, 'A.E.T.H.E.R - navigation integrity mission control   ·   %s'
+             % node.source_label, ha='center', fontsize=9.5, color=INK)
+    fig.text(0.5, 0.012, SPINE, ha='center', fontsize=8, color=GREY, style='italic')
+
+    grid = fig.add_gridspec(2, 2, left=0.06, right=0.975, top=0.895, bottom=0.165,
+                            hspace=0.33, wspace=0.22)
+    ax_xy = fig.add_subplot(grid[0, 0])
+    ax_tr = fig.add_subplot(grid[0, 1])
+    ax_pl = fig.add_subplot(grid[1, 0])
+    ax_txt = fig.add_subplot(grid[1, 1])
 
     # (a) top-down XY
-    ax_xy = axs[0][0]
-    ax_xy.set_title('top-down (odom frame)')
-    ax_xy.set_xlabel('x [m]')
-    ax_xy.set_ylabel('y [m]')
+    ax_xy.set_title('top-down (odom frame)', fontsize=10)
+    ax_xy.set_xlabel('x [m]', fontsize=8)
+    ax_xy.set_ylabel('y [m]', fontsize=8)
     ax_xy.set_aspect('equal', adjustable='datalim')
     gt_line, = ax_xy.plot([], [], color=GREEN, lw=1.5, label='ground truth')
     est_line, = ax_xy.plot([], [], color='#2A5DB0', lw=1.2, label='VIO estimate')
@@ -172,33 +258,67 @@ def build_figure(node):
     ax_xy.legend(loc='upper right', fontsize=7)
 
     # (b) trust strip-chart with bands
-    ax_tr = axs[0][1]
-    ax_tr.set_title('trust (0..1)')
+    ax_tr.set_title('trust (0..1)', fontsize=10)
     ax_tr.set_ylim(-0.02, 1.02)
-    ax_tr.set_xlabel('t [s]')
+    ax_tr.set_xlabel('t [s]', fontsize=8)
     ax_tr.axhspan(0.8, 1.02, color=GREEN, alpha=0.12)
     ax_tr.axhspan(0.4, 0.8, color=AMBER, alpha=0.12)
     ax_tr.axhspan(-0.02, 0.4, color=RED, alpha=0.12)
     trust_line, = ax_tr.plot([], [], color='#1F3A5F', lw=1.4)
 
     # (c) PL vs |true error|
-    ax_pl = axs[1][0]
-    ax_pl.set_title('horizontal PL vs |true error| (coverage)')
-    ax_pl.set_xlabel('t [s]')
-    ax_pl.set_ylabel('[m]')
+    ax_pl.set_title('horizontal PL vs |true error| (coverage)', fontsize=10)
+    ax_pl.set_xlabel('t [s]', fontsize=8)
+    ax_pl.set_ylabel('[m]', fontsize=8)
     pl_line, = ax_pl.plot([], [], color=AMBER, lw=1.4, label='protection level')
     err_line, = ax_pl.plot([], [], color=RED, lw=1.2, label='|true error|')
     ax_pl.legend(loc='upper left', fontsize=7)
 
     # (d) big text
-    ax_txt = axs[1][1]
     ax_txt.axis('off')
     text = ax_txt.text(0.02, 0.95, '', transform=ax_txt.transAxes,
                        fontsize=13, family='monospace', va='top')
 
-    fig.tight_layout(rect=(0, 0, 1, 0.96))
+    # ---------------- button rail ----------------
+    widgets = []
+    if interactive:
+        defs = [
+            ('KILL CAMERA', node.toggle_camera,
+             lambda on: 'RESTORE CAMERA' if on else 'KILL CAMERA'),
+            ('IMU BIAS: off', node.toggle_bias,
+             lambda on: 'IMU BIAS: %s' % ('ON' if on else 'off')),
+            ('STARVE FEATS: off', node.toggle_starve,
+             lambda on: 'STARVE FEATS: %s' % ('ON' if on else 'off')),
+            ('UWB AID: off', node.toggle_uwb,
+             lambda on: 'UWB AID: %s' % ('ON' if on else 'off')),
+        ]
+        n = len(defs)
+        w, gap = 0.20, 0.025
+        x0 = 0.5 - (n * w + (n - 1) * gap) / 2.0
+        for i, (label, action, relabel) in enumerate(defs):
+            bax = fig.add_axes((x0 + i * (w + gap), 0.045, w, 0.055))
+            btn = Button(bax, label, color='#E8E6E0', hovercolor='#D8D4CA')
+            btn.label.set_fontsize(9)
+            btn.label.set_family('monospace')
+
+            def _cb(_event, a=action, r=relabel, b=btn):
+                try:
+                    on = a()
+                    b.label.set_text(r(on))
+                    b.label.set_color(RED if on else INK)
+                except Exception as exc:   # never let a click kill the HUD
+                    print('button error:', exc)
+
+            btn.on_clicked(_cb)
+            widgets.append(btn)
 
     def refresh(_frame=None):
+        # banner
+        st = node.state or '--'
+        banner.set_text('%s      trust %s      PL %s      det %s' % (
+            st, _fmt(node.trust), _fmt(node.hpl, suffix=' m'),
+            _fmt(node.detection_latency, suffix=' s')))
+        banner.set_color(STATE_COLOR.get(st, GREY))
         # (a)
         if node.gt_path:
             xs, ys = zip(*node.gt_path)
@@ -263,13 +383,13 @@ def build_figure(node):
                            (AMBER if node.trust >= 0.4 else RED))
         return []
 
-    return fig, refresh
+    return fig, refresh, widgets
 
 
 def run_headless(node):
     """Agg fallback: render to docs/figures/hud_snapshot.png every 5 s."""
     plt.switch_backend('Agg')
-    fig, refresh = build_figure(node)
+    fig, refresh, _ = build_figure(node, interactive=False)
     out_dir = os.path.join('docs', 'figures')
     out_png = os.path.join(out_dir, 'hud_snapshot.png')
     node.get_logger().warning('No GUI backend; saving %s every 5 s.' % out_png)
@@ -293,11 +413,11 @@ def main(args=None):
     spin.start()
     try:
         try:
-            fig, refresh = build_figure(node)
+            fig, refresh, widgets = build_figure(node, interactive=True)
             anim = animation.FuncAnimation(fig, refresh, interval=200,
                                            cache_frame_data=False)
             plt.show()                  # blocks until the window closes
-            del anim
+            del anim, widgets
         except Exception as exc:        # WSLg absent / backend failure -> Agg
             node.get_logger().warning('GUI backend failed (%s); Agg fallback.' % exc)
             run_headless(node)

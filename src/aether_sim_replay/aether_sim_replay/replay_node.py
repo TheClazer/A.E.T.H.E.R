@@ -69,13 +69,36 @@ Q[2, 2] += (S_RW ** 2) * DT                        # bias random-walk increment
 class ReplayNode(Node):
     def __init__(self):
         super().__init__('aether_replay')
+        # source:=synthetic  (default) — self-contained: generates its own truth,
+        #                    IMU and ground-truth topics; serves /kill_camera.
+        # source:=sim        — LIVE GAZEBO mode: truth comes from the simulator's
+        #                    /aether/ground_truth, the real /imu/data comes from the
+        #                    bridge, and VISION HEALTH IS DERIVED FROM THE ACTUAL
+        #                    IMAGE STREAM (/camera/left/image freshness) — so the
+        #                    judge's KILL CAMERA on sensor_bridge propagates through
+        #                    real image topics, not a flag. The VIO-class error
+        #                    model is identical; only truth/IMU sourcing changes.
+        self.declare_parameter('source', 'synthetic')
+        self.source = str(self.get_parameter('source').value)
+        self.sim_mode = self.source == 'sim'
+
         self.pub_odom = self.create_publisher(Odometry, '/ov_msckf/odomimu', 20)
         self.pub_pts = self.create_publisher(PointCloud2, '/ov_msckf/points_msckf', 10)
-        self.pub_gt = self.create_publisher(Odometry, '/aether/ground_truth', 20)
-        self.pub_imu = self.create_publisher(Imu, '/imu/data', 50)
         self.pub_fault = self.create_publisher(Bool, '/fault/active', 10)
-
-        self.create_service(KillCamera, '/kill_camera', self.on_kill)
+        if not self.sim_mode:
+            self.pub_gt = self.create_publisher(Odometry, '/aether/ground_truth', 20)
+            self.pub_imu = self.create_publisher(Imu, '/imu/data', 50)
+            self.create_service(KillCamera, '/kill_camera', self.on_kill)
+        else:
+            self.pub_gt = None
+            self.pub_imu = None
+            # sensor_bridge owns /kill_camera in the live scene
+            self.sim_gt_pos = None       # latest sim truth (np[3])
+            self.sim_gt_vel = np.zeros(3)
+            self.last_img_wall = None    # wall time of the last live camera frame
+            from sensor_msgs.msg import Image
+            self.create_subscription(Odometry, '/aether/ground_truth', self.on_sim_gt, 20)
+            self.create_subscription(Image, '/camera/left/image', self.on_sim_img, 5)
         self.create_service(SetBool, '/inject/imu_bias', self.on_imu_bias)
         self.create_service(SetBool, '/inject/feature_starvation', self.on_starvation)
         self.create_service(SetBool, '/uwb/enable', self.on_uwb)
@@ -96,14 +119,27 @@ class ReplayNode(Node):
 
         self.t0 = self.now()
         self.create_timer(DT, self.tick)
-        self.create_timer(1.0 / IMU_RATE, self.tick_imu)
+        if not self.sim_mode:
+            self.create_timer(1.0 / IMU_RATE, self.tick_imu)
         self.create_timer(1.0, self.tick_uwb)
         self.get_logger().info(
-            'A.E.T.H.E.R replay up (emergent drift, seed=7). Faults: /kill_camera, '
-            '/inject/imu_bias, /inject/feature_starvation. Aiding: /uwb/enable.')
+            'A.E.T.H.E.R replay up (emergent drift, seed=7, source=%s). Faults: '
+            '%s/inject/imu_bias, /inject/feature_starvation. Aiding: /uwb/enable.'
+            % (self.source, '' if self.sim_mode else '/kill_camera, '))
 
     def now(self):
         return self.get_clock().now().nanoseconds * 1e-9
+
+    # ------------------------------------------------------------- sim-mode inputs
+    def on_sim_gt(self, msg: Odometry):
+        p = msg.pose.pose.position
+        v = msg.twist.twist.linear
+        self.sim_gt_pos = np.array([p.x, p.y, p.z])
+        self.sim_gt_vel = np.array([v.x, v.y, v.z])
+
+    def on_sim_img(self, _msg):
+        import time as _time
+        self.last_img_wall = _time.monotonic()
 
     # ------------------------------------------------------------------ services
     def on_kill(self, req, resp):
@@ -114,6 +150,13 @@ class ReplayNode(Node):
         return resp
 
     def on_imu_bias(self, req, resp):
+        if self.sim_mode:
+            # the live scene uses the REAL Gazebo IMU — we don't fake its output
+            self.get_logger().warning('IMU BIAS injection is replay-source only '
+                                      '(the live scene publishes the real Gazebo IMU)')
+            resp.success = False
+            resp.message = 'imu_bias unavailable with source:=sim'
+            return resp
         self.imu_biased = bool(req.data)
         self.get_logger().warning(
             'IMU BIAS FAULT ' + ('ON (+%.1f m/s^2 on published x accel; VIO estimate '
@@ -150,7 +193,17 @@ class ReplayNode(Node):
     # ------------------------------------------------------------------ 20 Hz model
     def tick(self):
         t = self.now() - self.t0
-        gt, vel_truth, _ = self._truth(t)
+        if self.sim_mode:
+            if self.sim_gt_pos is None:
+                return                       # Gazebo not up yet
+            gt, vel_truth = self.sim_gt_pos, self.sim_gt_vel
+            # vision health from the REAL image stream: >0.5 s stale = lost
+            import time as _time
+            img_fresh = (self.last_img_wall is not None
+                         and (_time.monotonic() - self.last_img_wall) < 0.5)
+            self.killed = not img_fresh
+        else:
+            gt, vel_truth, _ = self._truth(t)
 
         # One step of the seeded truth-error realization (always running, so the
         # same stochastic history feeds /imu/data and any later outage).
@@ -192,7 +245,8 @@ class ReplayNode(Node):
         # separation channel anchors its dead reckoning on it, so the estimate
         # gets truth velocity + the realized velocity error of the drift model.
         self.pub_odom.publish(self._odom(stamp, est, var_pub, vel_truth + self.err[:, 1]))
-        self.pub_gt.publish(self._odom(stamp, gt, np.full(3, 1e-6), vel_truth))
+        if self.pub_gt is not None:      # sim mode: the simulator publishes real GT
+            self.pub_gt.publish(self._odom(stamp, gt, np.full(3, 1e-6), vel_truth))
         self.pub_pts.publish(self._cloud(stamp, n_feat))
         self.pub_fault.publish(Bool(data=bool(self.killed or self.imu_biased or self.starved)))
 

@@ -39,7 +39,8 @@ for f in estimator_config kalibr_imu_chain kalibr_imucam_chain; do
 done
 ros2 run ov_msckf run_subscribe_msckf "$CFG/estimator_config.yaml" > "$OUT/ov_msckf.log" 2>&1 &
 OV=$!
-tr -d '\r' < /aether/src/aether_bringup/config/integrity.yaml > /tmp/integrity.yaml
+# the ov-source profile: feature/covariance scales matched to OpenVINS semantics
+tr -d '\r' < /aether/src/aether_bringup/config/integrity_ov.yaml > /tmp/integrity.yaml
 ros2 run aether_integrity_monitor monitor_node --ros-args -p use_sim_time:=false \
   --params-file /tmp/integrity.yaml \
   -r /ov_msckf/odomimu:=/odomimu -r /ov_msckf/points_msckf:=/points_msckf \

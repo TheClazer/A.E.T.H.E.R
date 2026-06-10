@@ -4,19 +4,55 @@
 <i>“When the camera dies, our drift bound still covers the true position 95%+ of the time — and we know within half a second.”</i></p>
 
 <p align="center">
-<img alt="ROS2 Humble" src="https://img.shields.io/badge/ROS2-Humble-2E5F84">
-<img alt="Gazebo Harmonic" src="https://img.shields.io/badge/Gazebo-Harmonic-2E5F84">
+<a href="https://github.com/TheClazer/A.E.T.H.E.R/actions"><img alt="CI" src="https://github.com/TheClazer/A.E.T.H.E.R/actions/workflows/ci.yml/badge.svg"></a>
+<img alt="ROS2" src="https://img.shields.io/badge/ROS2-Lyrical%20%7C%20Jazzy-2E5F84">
+<img alt="Gazebo Harmonic" src="https://img.shields.io/badge/Gazebo-Sim%2010-2E5F84">
 <img alt="OpenVINS" src="https://img.shields.io/badge/VIO-OpenVINS%20MSCKF-2E5F84">
 <img alt="license" src="https://img.shields.io/badge/license-MIT-C42A1C">
 </p>
 
+<p align="center">
+<img src="docs/figures/chain_replay.gif" width="96%">
+</p>
+<p align="center"><i><b>Real data, no mockups:</b> OpenVINS stereo-MSCKF running on our Gazebo tunnel flight, with the A.E.T.H.E.R integrity bound live on top — the bound (colored circle) covers the true error for 97.2 % of 31,173 verdicts.</i></p>
+
+## The measured results (every number has a file behind it)
+
+| What | Result | Provenance |
+|---|---|---|
+| **Real VIO drift** — OpenVINS stereo-MSCKF on our 202.2 m Gazebo tunnel flight | **0.219 %** terminal drift (DP7 gate < 1.5 % — **beaten 6.8×**) · RMS ATE 0.202 m | [`results/drift_report.txt`](results/drift_report.txt) |
+| **Integrity on the real VIO** — same monitor nodes, live on the OpenVINS output | bound covers the true error **97.2 %** of 31,173 verdicts | [`results/integrity_chain.csv`](results/integrity_chain.csv) |
+| **Live integrity rig** — measured in running ROS2, faults injected | coverage **97.6 %** (emergent, seeded) · ANEES **3.05** (χ²₃ target ≈ 3) · detection **1.18 s** | [`results/metrics.csv`](results/metrics.csv), [`docs/figures/measured_*.png`](docs/figures) |
+| **Physics-real 3D flight** — X3 multicopter, rotor forces, closed-loop guidance | full 200 m corridor, centered ±0.58 m, IMU alive (cruise σ 0.287 m/s²) | [`bags/tunnel_mini`](bags/tunnel_mini) (GT+IMU) |
+
+Everything reruns deterministically: `docker compose run --rm chain` reproduces the drift report from the committed pipeline.
+
 ---
 
-A.E.T.H.E.R is a navigator for a drone that has **no GPS** — in a tunnel, a warehouse, under jamming. Standard Visual-Inertial Odometry (VIO) can tell you *where you are*; A.E.T.H.E.R adds the layer the aerospace world actually ships and students rarely build: a **live integrity bound** that tells you **how wrong you could be, and knows when it can no longer be trusted** — the GNSS-RAIM idea, ported to the vision aid.
+A.E.T.H.E.R is a navigator for a drone that has **no GPS** — a tunnel, a warehouse, under jamming. Standard Visual-Inertial Odometry (VIO) tells you *where you are*; A.E.T.H.E.R adds the layer the aerospace world actually ships and student projects skip: a **live integrity bound** that says **how wrong the answer could be — and knows, within half a second, when it can no longer be trusted**. It is the GNSS-RAIM idea, ported to the vision aid: detect the fault, bound the error, degrade gracefully to inertial, recover.
 
-It is the Honeywell **Design-A-Thon (DP7 — Autonomous Navigator for GPS-Denied Environments)** entry by **Rayyan** &amp; **Ashitha**. The full design rationale is in [`docs/AETHER_BIBLE.pdf`](docs/AETHER_BIBLE.pdf); the step-by-step build/run guide is [`docs/AETHER_MANUAL_STEPS.pdf`](docs/AETHER_MANUAL_STEPS.pdf).
+Built by **Rayyan** &amp; **Ashitha** for the Honeywell **Design-A-Thon (DP7 — Autonomous Navigator for GPS-Denied Environments)**. Design rationale: [`docs/AETHER_BIBLE.pdf`](docs/AETHER_BIBLE.pdf) · build/run guide: [`docs/AETHER_MANUAL_STEPS.pdf`](docs/AETHER_MANUAL_STEPS.pdf) · judge briefing: [`docs/JUDGES.md`](docs/JUDGES.md).
 
-> **Where the name comes from.** We first framed GPS-denied flight as a reinforcement-learning *decision* problem. We re-realized it is fundamentally a **bounded-error state-estimation + integrity** problem — *“where am I, and how wrong could I be?”* — and re-architected around exactly that. The result is **A.E.T.H.E.R**.
+## 🎮 For the judges — the 5-minute tour
+
+One command per scene (Ubuntu/WSL2; first run auto-builds):
+
+```bash
+./scripts/judge_demo.sh live3d   # THE SHOWPIECE — Gazebo 3D drone patrolling the tunnel
+                                 # + RViz (trails, breathing bound, live camera pane)
+                                 # + MISSION CONTROL with CLICKABLE fault buttons
+./scripts/judge_demo.sh tour     # narrated scripted pass through every fault class
+./scripts/judge_demo.sh chain    # REAL OpenVINS on the recorded flight -> drift report (~6 min)
+./scripts/judge_demo.sh replay   # the guaranteed rig (no Gazebo needed) + Mission Control
+./scripts/judge_demo.sh proof    # print the measured results + open the figures
+```
+
+**What to try in `live3d`:** click **KILL CAMERA** on the Mission Control window. The RViz camera pane goes dark (the *actual* image stream stops), trust collapses, the state flips to INERTIAL in under a second, and the protection-level ellipse *blooms* — visibly chasing and containing the true position while the naive grey ghost stays confidently small and **loses the truth**. Then click **RESTORE** and watch it re-converge. Also on the rail: **IMU BIAS** (caught by the solution-separation test even though the camera looks healthy), **FEATURE STARVATION** (graceful DEGRADED, not panic), and **UWB AID** (Honeywell-HANA-style layered modality that clamps the error during a blackout).
+
+<p align="center">
+<img src="docs/figures/aether_demo.gif" width="96%">
+</p>
+<p align="center"><i>The kill-the-camera beat: A.E.T.H.E.R's oriented protection level blooms through the outage and keeps the truth inside — the naive fixed-σ ghost (dotted) stays small and loses it.</i></p>
 
 ## The idea in one diagram
 
@@ -25,11 +61,11 @@ It is the Honeywell **Design-A-Thon (DP7 — Autonomous Navigator for GPS-Denied
                                                         │ pose + covariance
                                                         ▼
                                               integrity_monitor   ◀── the novel layer
-                                              D · NIS · NEES · dual protection level
+                                              NEES · solution separation · dual protection level
                                                         │ trust, bound, state
                                                         ▼
-                                       degradation_manager ─▶ health_cockpit
-                                       NOMINAL→DEGRADED→INERTIAL→RE_ACQUIRE   (breathing ellipse + trust HUD)
+                                       degradation_manager ─▶ health_cockpit + MISSION CONTROL
+                                       NOMINAL→DEGRADED→INERTIAL→RE_ACQUIRE   (breathing ellipse, fault rail)
 ```
 Each box is an independent ROS2 node — **any subset runs**, so graceful degradation is proven by the graph itself.
 
@@ -37,85 +73,52 @@ Each box is an independent ROS2 node — **any subset runs**, so graceful degrad
 
 | Path | What |
 |---|---|
-| [`offline_demo/`](offline_demo) | **Runs on any laptop, no ROS2.** The real integrity math + a synthetic camera-kill flight that produces the report figures. Start here. |
-| [`src/`](src) | The ROS2 workspace: `aether_msgs` (interfaces), `aether_bringup` (launch+config), and the five nodes (`sensor_bridge`, `integrity_monitor`, `degradation_manager`, `health_cockpit`). |
-| [`sim/`](sim) | Gazebo Harmonic tunnel world + a primitive drone model (stereo + HG4930-class IMU + ground-truth publisher — no external mesh). |
-| [`eval/`](eval) | KITTI %-drift + ATE from TUM trajectories, rosbag→TUM, report-figure generation. |
-| [`scripts/`](scripts) | One-shot Ubuntu setup, `run_floor.sh`, `run_demo.sh`. |
-| [`docs/`](docs) | The bible, the deck, the manual-steps PDF, the architecture note, and generated figures. |
+| [`scripts/judge_demo.sh`](scripts/judge_demo.sh) | **Start here.** One-command demo scenes. |
+| [`offline_demo/`](offline_demo) | Runs on any laptop, no ROS2: the exact integrity math + a seeded validation rig (tests prove ≥95 % coverage). |
+| [`src/`](src) | The ROS2 workspace: `aether_msgs`, `aether_bringup` (launch+config incl. `live3d`), and the nodes (`sim_replay`, `sensor_bridge`, `integrity_monitor`, `degradation_manager`, `health_cockpit` + Mission Control, `flight_director`). |
+| [`sim/`](sim) | Gazebo Sim 10 tunnel world (textured + a deliberately bare integrity-stress stretch) + the X3 multicopter with stereo + HG4930-class IMU + ground truth. |
+| [`eval/`](eval) | Time-synced, SE(3)-aligned KITTI %-drift; rosbag→TUM; figure + GIF generators. |
+| [`results/`](results) | The measured artifacts: drift report, 31k-row integrity verdict, logs, metrics. |
+| [`docs/`](docs) | Bible (design rationale), judge briefing, manual, runbook, deck, generated figures. |
+| [`docker/`](docker) + [`docker-compose.yml`](docker-compose.yml) | Pinned `ros:jazzy` + OpenVINS image; `docker compose run chain` reproduces the headline number. |
 
-## Try the integrity core right now (Windows/Mac/Linux, no ROS2)
+## Try the integrity core right now (any OS, no ROS2)
 
 ```bash
 pip install numpy scipy matplotlib pytest
 cd offline_demo
-python verify_constants.py     # audits k_op=2.4477, k_ffd=6.7374, lambda_md=45.0
+python verify_constants.py     # audits k_op=2.4477, k_ffd=6.7374, lambda_md=45.0 (scipy)
 python run_demo.py             # writes docs/figures/*.png + prints headline metrics
-pytest test_core.py -q         # proves the bound covers the truth 95%+
+pytest test_core.py -q         # proves the bound covers the truth >=95% (emergent, seeded)
 ```
 
-That exercises the **exact** protection-level proxy, NEES check, and degradation state machine that the ROS2 `integrity_monitor` uses live — so the algorithm is validated without needing Ubuntu/Gazebo.
+This is the **same module** (`aether_core.py`) the live `integrity_monitor` imports — the algorithm is validated before ROS2 ever enters the picture.
 
-<p align="center">
-<img src="docs/figures/aether_demo.gif" width="96%">
-</p>
-<p align="center"><i>Kill-the-camera beat: A.E.T.H.E.R's oriented protection level blooms through the outage and keeps the truth inside — while the naive fixed-σ ghost (dotted) stays confidently small and loses it.</i></p>
-<p align="center">
-<img src="docs/figures/breathing_ellipse.png" width="48%">
-<img src="docs/figures/ib_coverage.png" width="48%">
-</p>
-
-## Fastest live demo — no Gazebo/OpenVINS needed (✅ verified)
-
-The **guaranteed** path: a representative VIO trajectory drives the *real* integrity stack, so the kill-camera beat always works.
-
-### Verified status — every tier measured, none aspirational
-
-| Tier | What | Result |
-|---|---|---|
-| **T1 — integrity layer, live** (Ubuntu 26.04 / ROS2 Lyrical) | `replay → integrity_monitor → degradation_manager → cockpit`; kill-camera beat. | ✅ `/nav/state` `NOMINAL→INERTIAL→NOMINAL`, trust `1.0→0.02`, PL `0.21→1.66 m`; **measured live ROS2:** coverage **97.6 %** (emergent), ANEES **3.05**, detection **1.18 s** |
-| **T3 — Gazebo 3D sim, physics-real flight** | X3 multicopter (4× rotor `MulticopterMotorModel` + velocity control) flies the 200 m textured tunnel under closed-loop guidance; stereo @20 Hz + HG4930-IMU @200 Hz + ground truth. | ✅ full corridor (x → 199.8 m, centered ±0.58 m); IMU **alive** (cruise `aσ` 0.287 vs 0.002 on a kinematic rig) |
-| **T2 — OpenVINS stereo-MSCKF on OUR sim** (`aether/openvins:jazzy` container) | the golden bag (6,382 stereo pairs, 64 k IMU) → `ov_msckf` → drift vs ground truth. | ✅ **0.219 % terminal drift over 202.2 m** (DP7 gate < 1.5 % — beaten 6.8×); RMS ATE 0.202 m; seg-drift 0.94 %@10 m → 0.31 %@80 m |
-
-OpenVINS needs Ubuntu 24.04/Jazzy (it won't build on 26.04/Lyrical: CMake 4 / Boost 1.90 / `ament_target_dependencies` removed) — hence the pinned Docker image; the integrity layer + sim run natively on 26.04. CI builds the whole workspace on `ros:jazzy` every push.
+## Full setup (Ubuntu / WSL2)
 
 ```bash
-# one-time (installs ROS2 for your Ubuntu; Lyrical on 26.04, edit the codename for 24.04/22.04):
-sudo bash scripts/wsl_setup_ros2.sh
-# build + run the live integrity demo:
-./scripts/run_replay_demo.sh                 # replay -> integrity_monitor + degradation_manager + cockpit
-rviz2 -d src/aether_bringup/config/aether.rviz
-./scripts/run_demo.sh kill                   # vision loss -> trust collapses, bound blooms, truth stays inside
-./scripts/run_demo.sh restore                # recover
+sudo bash scripts/wsl_setup_ros2.sh      # ROS2 (Lyrical on 26.04; edit codename for Jazzy/Humble)
+./scripts/judge_demo.sh live3d           # auto-builds the workspace on first run
+docker compose build openvins            # (optional) the pinned OpenVINS image for the chain
 ```
-(`scripts/wsl_build_verify.sh` runs the whole build + headless check in one shot.)
+Step-by-step (incl. recording a fresh golden flight): [`docs/AETHER_MANUAL_STEPS.pdf`](docs/AETHER_MANUAL_STEPS.pdf). Demo-day runbook with fallbacks: [`docs/RUNBOOK.pdf`](docs/RUNBOOK.pdf).
 
-Real VIO accuracy comes from OpenVINS on the **EuRoC** dataset; the full Gazebo sim is the bonus. The exact 3-day plan is in **[`docs/RUNBOOK.pdf`](docs/RUNBOOK.pdf)**.
+## The integrity story (why this is different)
 
-## Run the full system (Ubuntu 22.04)
+- **A dual protection level, derived not asserted** — operational `k=2.45` (95 %) and DAL-C `k_ffd=6.74` (integrity-risk allocation `P_HMI=1e-5/hr`, exceedance `1.39e-10`), both reproducible from `scipy.stats` in one line each.
+- **The bound is proven honest** — NEES consistency (ANEES 3.05 vs χ²₃ expectation 3) plus measured coverage on the *real* VIO output, not just a pretty ellipse.
+- **Faults the feature count can't see get caught anyway** — an independent IMU dead-reckoning channel cross-checks the VIO (solution separation, the ARAIM idea), trapping IMU bias faults while the camera looks healthy.
+- **Graceful degradation with characterized error** — vision loss ⇒ inertial coast at ≈0.4 m per 8 s on an HG4930-class IMU (cross-checked against first-principles physics ±20 %), then re-acquire.
+- **Layered aiding, the HANA way** — a UWB stub shows how any absolute modality slots in to clamp the bound during an outage.
 
-ROS2 Humble + Gazebo Harmonic + OpenVINS only run on Linux. Everything you must do by hand is in **[`docs/AETHER_MANUAL_STEPS.pdf`](docs/AETHER_MANUAL_STEPS.pdf)** (incl. the optional 3D-modeling path). The short version:
+## Honesty statement
 
-```bash
-./scripts/setup_ubuntu.sh                 # ROS2 + Gazebo Harmonic + OpenVINS
-cd <repo> && colcon build --symlink-install --packages-select aether_msgs
-colcon build --symlink-install && source install/setup.bash
-ros2 launch aether_bringup aether.launch.py use_sim:=true
-./scripts/run_demo.sh kill                # blank the camera → watch the bound breathe
-```
-
-## The integrity story (why this wins)
-
-- **Dual protection level** — operational `k=2.45` (95%, what the ellipse uses) and DAL-C `k=6.74` (conservative, exceedance `1.39e-10`), both `scipy`-verified.
-- **NEES** proves the bound is *honest* (covers the truth), not just a pretty covariance ellipse.
-- **Graceful degradation** to inertial dead-reckoning with **bounded, characterized** error — an 8 s outage on a Honeywell HG4930-class IMU ≈ **0.4 m** (vs ~6.3 m consumer), cross-checked to physics ±20%.
-- This is the open-source, student-scale instantiation of Honeywell's **HANA** resilient-PNT philosophy.
-
-## Honesty note
-Figures in the 8-Jun design deck are **illustrative / target**. Measured numbers come from the Ubuntu build (EuRoC + Gazebo) during the 8–11 June sprint. The offline demo above is a *synthetic* validation rig for the math, clearly labelled as such.
+Three evidence classes, always labeled: **(1) real-VIO measurements** — OpenVINS on our recorded Gazebo flight (the headline drift + 97.2 % coverage; deterministic, reproducible via `docker compose run chain`); **(2) live measurements of the integrity rig** — real ROS2, seeded VIO-class error model, emergent statistics (97.6 % coverage, ANEES 3.05); **(3) the live 3D scene** — the same validated error model riding the live simulator, labeled on-screen (`LIVE GAZEBO SIM · VIO-CLASS ERROR MODEL`), because upstream OpenVINS does not yet build on Ubuntu 26.04 — which is also why the real-VIO chain ships in a pinned `ros:jazzy` container.
 
 ## Acknowledgements
-OpenVINS (MSCKF VIO) · ROS2 Humble · Gazebo Harmonic + `ros_gz` · PX4 SITL · `evo` · EuRoC MAV dataset · GTSAM/Forster preintegration (cited) · Honeywell HG4930 datasheet · `scipy`. See [`docs/AETHER_BIBLE.pdf`](docs/AETHER_BIBLE.pdf) §References. Built by Rayyan &amp; Ashitha for the Honeywell Design-A-Thon, RVCE 2026.
+
+OpenVINS (RPNG) · ROS2 · Gazebo Sim + `ros_gz` · the gz X3 multicopter model (Open Robotics) · `evo` · EuRoC MAV dataset · GTSAM/Forster preintegration (cited) · Honeywell HG4930 datasheet · `scipy`. Full references: [`docs/AETHER_BIBLE.pdf`](docs/AETHER_BIBLE.pdf). Built by **Rayyan & Ashitha** for the Honeywell Design-A-Thon, RVCE 2026.
 
 ## License
+
 MIT — see [`LICENSE`](LICENSE).

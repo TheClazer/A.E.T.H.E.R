@@ -1,18 +1,125 @@
 Panels:
   - Class: rviz_common/Displays
     Name: Displays
+    Property Tree Widget:
+      Expanded: ~
+  - Class: rviz_common/Views
+    Name: Views
 Visualization Manager:
+  Class: ""
+  Global Options:
+    Background Color: 35; 38; 46
+    Fixed Frame: odom
+    Frame Rate: 30
   Displays:
-    - Class: rviz_default_plugins/Marker
-      Name: IntegrityBound
-      Topic: { Value: /viz/integrity_bound }
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
       Enabled: true
-    - Class: rviz_default_plugins/Marker
-      Name: Truth
-      Topic: { Value: /viz/truth }
-      Enabled: true
+      Cell Size: 5
+      Plane Cell Count: 50
+      Color: 70; 76; 88
+      Line Style:
+        Line Width: 0.03
+        Value: Lines
     - Class: rviz_default_plugins/Odometry
-      Name: Estimate
-      Topic: { Value: /ov_msckf/odomimu }
+      Name: GroundTruth (trail)
       Enabled: true
-  Global Options: { Fixed Frame: odom }
+      Topic:
+        Value: /aether/ground_truth
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Reliable
+      Keep: 300
+      Position Tolerance: 0.5
+      Angle Tolerance: 0.5
+      Shape:
+        Value: Arrow
+        Color: 47; 125; 79
+        Alpha: 0.9
+        Shaft Length: 0.5
+        Shaft Radius: 0.03
+        Head Length: 0.15
+        Head Radius: 0.06
+      Covariance:
+        Value: false
+    - Class: rviz_default_plugins/Odometry
+      Name: VIO Estimate (trail)
+      Enabled: true
+      Topic:
+        Value: /ov_msckf/odomimu
+        Depth: 5
+        Durability Policy: Volatile
+        Reliability Policy: Reliable
+      Keep: 300
+      Position Tolerance: 0.5
+      Angle Tolerance: 0.5
+      Shape:
+        Value: Arrow
+        Color: 42; 93; 176
+        Alpha: 0.9
+        Shaft Length: 0.5
+        Shaft Radius: 0.03
+        Head Length: 0.15
+        Head Radius: 0.06
+      Covariance:
+        Value: false
+    - Class: rviz_default_plugins/Marker
+      Name: Integrity Bound (breathing)
+      Enabled: true
+      Topic:
+        Value: /viz/integrity_bound
+        Depth: 5
+    - Class: rviz_default_plugins/Marker
+      Name: Truth (now)
+      Enabled: true
+      Topic:
+        Value: /viz/truth
+        Depth: 5
+    - Class: rviz_default_plugins/Marker
+      Name: Naive Ghost Bound
+      Enabled: true
+      Topic:
+        Value: /viz/naive_bound
+        Depth: 5
+    - Class: rviz_default_plugins/Marker
+      Name: Naive Ghost Estimate
+      Enabled: true
+      Topic:
+        Value: /viz/naive_estimate
+        Depth: 5
+    - Class: rviz_default_plugins/Marker
+      Name: Verdict Labels
+      Enabled: true
+      Topic:
+        Value: /viz/labels
+        Depth: 5
+    - Class: rviz_default_plugins/Image
+      Name: Drone Camera (left)
+      Enabled: true
+      Topic:
+        Value: /camera/left/image
+        Depth: 2
+        Durability Policy: Volatile
+        Reliability Policy: Best Effort
+      Max Value: 1
+      Min Value: 0
+      Normalize Range: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: Chase
+      Target Frame: <Fixed Frame>
+      Distance: 28
+      Pitch: 0.62
+      Yaw: 3.6
+      Focal Point:
+        X: 25
+        Y: 0
+        Z: 1
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 900
+  Width: 1500
+  "Drone Camera (left)":
+    collapsed: false

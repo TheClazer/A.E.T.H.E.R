@@ -1,86 +1,57 @@
-# A.E.T.H.E.R — RUNBOOK: a working demo on the 12th
+# A.E.T.H.E.R — Demo-Day Runbook (12 Jun)
 
-**Build days: 9, 10, 11 June. Demo: 12 June.** This is the *fastest reliable path*, not the maximal one. It is built so that **by end of Day 1 you already have a live, working ROS2 demo** (the replay path), and everything after that strengthens it. Front-load the risky steps; never bet the demo on the one uncertain step.
+Everything is built and measured. This is the operations card for the 3-hour final: what to launch, what to say, and the fallback ladder if anything wobbles. (The original 3-day build plan it replaces is in git history; the build landed: see `results/`.)
 
-## The three tiers (build them in this order — each is a complete fallback for the next)
+## Pre-flight (do once, ~10 min before)
 
-| Tier | What runs | Depends on | Confidence |
-|---|---|---|---|
-| **T1 — Integrity live (GUARANTEED)** | `replay_node` → the REAL `integrity_monitor` + `degradation_manager` + `health_cockpit`. Kill-camera → trust RED < 0.5 s → bound blooms → recover, in RViz + HUD. | only ROS2 (no OpenVINS, no Gazebo) | **Very high** |
-| **T2 — Real VIO accuracy** | OpenVINS on the **EuRoC** dataset → real drift < 1.5%, estimate-vs-ground-truth plots. | ROS2 + OpenVINS (out-of-box on EuRoC) | **High** |
-| **T3 — Full sim (the bonus)** | Gazebo tunnel + drone flying → OpenVINS on the sim feed → integrity live on real sim VIO. | + Gazebo + OpenVINS convergence on custom sim | **Medium** |
-
-**Your demo = T1 (the visual wow) + T2 (the real numbers).** T3 is upside. If T3 lands you show it; if not, you are still complete and honest: "integrity system live (T1) + measured VIO accuracy on real flight data (T2); full sim integration in progress."
-
----
-
-## DAY 1 (9 Jun) — environment + T1 working by tonight
-
-**Morning — Ubuntu + ROS2 (the #1 risk, do it first).**
-1. Boot Ubuntu 22.04 (dual-boot). If you don't have it: install it now (USB, ~1 hr). No Ubuntu box by noon → spin a **cloud GPU instance** (Lambda/Paperspace, Ubuntu 22.04 image) and work there.
-2. `git clone https://github.com/TheClazer/A.E.T.H.E.R.git aether && cd aether`
-3. `chmod +x scripts/*.sh && ./scripts/setup_ubuntu.sh` (ROS2 Humble + Gazebo Harmonic + OpenVINS build). Add the two `source` lines to `~/.bashrc`.
-
-**Afternoon — get T1 live (this is your safety demo, lock it today).**
 ```bash
-cd ~/aether
-./scripts/run_replay_demo.sh          # builds + launches replay + integrity stack
-# new terminal:
-rviz2 -d src/aether_bringup/config/aether.rviz
-ros2 topic echo /nav/state            # NOMINAL
-./scripts/run_demo.sh kill            # -> /nav/state INERTIAL within ~0.3 s, ellipse blooms
-./scripts/run_demo.sh restore         # -> recovers to NOMINAL
+wsl -u root                    # ROOT terminal: gz sensor rendering only works as root
+                               # on this rig (the launcher borrows the WSLg display)
+cd /root/aether                # the demo workspace (synced from the repo)
+source /opt/ros/lyrical/setup.bash
+./scripts/judge_demo.sh replay # smoke: Mission Control opens, buttons fire -> Ctrl-C
 ```
-⛳ **GATE 1 (end of Day 1):** the kill-camera beat plays live in RViz + the trust topic flips RED < 0.5 s. **If green, you already have a working demo for the 12th.** Record a screen-capture as the rung-3 backup now.
+Docker Desktop must be running (for the `chain` scene). Close heavy apps; WSLg + Gazebo + RViz like RAM.
 
-> Troubleshooting: build `aether_msgs` first (`colcon build --packages-select aether_msgs`); if `sensor_msgs_py` is missing, `sudo apt install ros-humble-sensor-msgs-py`.
+## The show (recommended order, ~12 min total)
 
----
-
-## DAY 2 (10 Jun) — T2: real VIO accuracy on EuRoC
-
-1. Get a EuRoC ROS2 bag (e.g. **V1_01_easy**, **MH_03**). (ASL EuRoC → convert to ROS2 bag, or use a pre-made ROS2 bag.)
-2. Run OpenVINS on it (out-of-box config):
+### 1 · The hook — live 3D, judges drive (5 min)
 ```bash
-source ~/ws_ov/install/setup.bash
-ros2 launch ov_msckf subscribe.launch.py config:=euroc_mav &
-ros2 bag play V1_01_easy            # publishes /cam0/image_raw /cam1/image_raw /imu0
-ros2 bag record /ov_msckf/odomimu   # record the estimate
+./scripts/judge_demo.sh live3d
 ```
-3. Evaluate the real drift:
+Windows that open: **Gazebo** (X3 quad patrolling the textured tunnel), **RViz** (truth vs estimate trails, breathing bound, naive ghost, live camera pane), **Mission Control** (state banner + clickable fault rail).
+- Let it fly nominal ~30 s. Point at: green trail vs blue trail hugging each other; tight ellipse; camera pane streaming.
+- **Hand the judge the mouse**: *"Click KILL CAMERA."* → camera pane freezes dark (the real image stream stops), trust collapses, INERTIAL in <1 s, the ellipse blooms and visibly keeps the red truth dot inside — the grey naive ghost stays small and goes red (lost).
+- **RESTORE** → re-convergence in ~2 s. Then **IMU BIAS** (*"the camera looks fine — watch SOL SEP catch the lie"*), **STARVE FEATS** (graceful amber), **UWB AID** during a kill (*"layered aiding, the HANA pattern"*).
+- Say the spine once, here: *"When the camera dies, our drift bound still covers the true position 95%+ of the time — and we know within half a second."*
+
+### 2 · The proof — real OpenVINS (start it BEFORE talking, ~6 min runtime)
 ```bash
-python eval/odom_to_tum.py <rec_bag> /ov_msckf/odomimu est.txt
-# EuRoC ground truth -> gt.txt (from the dataset's state_groundtruth csv)
-python eval/compute_drift.py gt.txt est.txt          # expect < 1.5% / 200 m
+./scripts/judge_demo.sh chain     # in a second terminal, started early
 ```
-⛳ **GATE 2:** real drift < 1.5% and an estimate-vs-GT plot exist. **Now T2 (numbers) + T1 (live integrity) = a complete DP7 submission.** Tag: `git tag floor-locked && git push origin floor-locked`.
+While it runs, show `docs/figures/chain_replay.gif` (the recorded real-VIO replay) and `./scripts/judge_demo.sh proof`. When it finishes, the drift report regenerates live: **0.219 % / 202.2 m**.
 
-**Bonus (if ahead):** run the integrity stack on the *live OpenVINS-on-EuRoC* output instead of the replay — point `integrity_monitor` at the real `/ov_msckf/odomimu`. If OpenVINS keeps propagating through a blanked-camera stretch, you get the real-data kill-camera beat; if its outage handling is finicky, keep the replay path for the live beat (that's why T1 exists).
+### 3 · The story (2 min)
+`docs/JUDGES.md` is the script: three measured results → the honesty layering → the Honeywell frame (integrity = certifiable navigation; dual PL k=2.45/6.74; NEES candor; solution separation; HG4930 fallback ±20 % physics check).
 
----
+## Fallback ladder (nothing can strand you)
 
-## DAY 3 (11 Jun) — T3 sim (bonus) + polish
+| If | Then |
+|---|---|
+| Gazebo GUI struggles on stage | `./scripts/judge_demo.sh replay` — identical integrity stack + Mission Control, no Gazebo. The beat is the same. |
+| All GUI fails (WSLg/display) | `./scripts/judge_demo.sh tour` in a terminal (narrated, state transitions print) + the GIFs in `docs/figures/`. |
+| Docker/chain won't run | `./scripts/judge_demo.sh proof` — the committed `results/drift_report.txt` + `chain_replay.gif` ARE the recorded run. |
+| Total machine failure | The deck (`docs/AETHER_DesignAThon_Final.pptx`) carries every measured number + figures; the repo on GitHub shows CI green. |
 
-1. **Sim setup (DP7 deliverable #1):**
-```bash
-gz sim sim/worlds/tunnel.sdf          # tunnel + drone load; sensors + /aether/ground_truth stream
-ros2 launch aether_bringup sim_world.launch.py
-```
-Get the drone flying a ~200 m pass (PX4 SITL `make px4_sitl gz_x500`, or a scripted velocity/pose). Verify `/camera/*` and `/imu/data` and `/aether/ground_truth` are publishing.
-2. **(Stretch) OpenVINS on the sim feed:** uncomment the `ov_msckf` node in `vio.launch.py`, set the camera/IMU calibration from the SDF, and tune until it converges. If it converges → full T3. If it fights → stop; you have T1+T2. **Do not let this eat the demo.**
-3. **Polish:** rehearse the 60-second beat to 5/5 clean runs. Finalize the backup video. `git tag demo-final && git push origin demo-final`.
+## Numbers to have on your tongue
 
----
+- **0.219 % / 202.2 m** real OpenVINS drift (gate 1.5 % — 6.8× margin) · RMS ATE **0.202 m**
+- **97.2 %** bound coverage on the real VIO (31,173 verdicts) · **97.6 %** on the live rig · **ANEES 3.05** (target ≈3)
+- detection **< 1.2 s** · HG4930 inertial coast **≈0.4 m / 8 s** (physics-checked ±20 %)
+- dual PL: operational **k=2.45**, DAL-C **k_ffd=6.74** (`P_HMI=1e-5/hr`, exceedance `1.39e-10`)
 
-## 12 JUN — the 3-hour final
+## Likely questions, straight answers
 
-- Boot Ubuntu, `cd aether`, `colcon build --symlink-install`, `source install/setup.bash`.
-- **Live:** `./scripts/run_replay_demo.sh` + RViz + the HUD → the kill-camera beat (T1).
-- **Numbers:** show the EuRoC drift plot + the offline figures (T2 + `docs/figures`).
-- **Sim:** show the Gazebo tunnel + drone (T3, even if VIO-on-sim is "in progress").
-- If anything stutters live → drop to the recorded backup video. The beat is identical.
-
-> **Say it honestly:** "Integrity system running live; VIO accuracy measured on real EuRoC flight data; full Gazebo-VIO integration in progress." The spine, three times: *"When the camera dies, our drift bound still covers the true position 95%+ of the time — and we know within half a second."*
-
-## The one rule
-Build **T1 → T2 → T3 in that order.** After Day 1 you have a live working demo; after Day 2 you have a complete, honest DP7 submission; Day 3 is pure upside. You are never in a position with "nothing to show."
+- *"Is the live demo the real VIO?"* — No, and it says so on screen: it's the validated VIO-class error model riding the live sim (OpenVINS doesn't build on Ubuntu 26.04 yet — CMake 4/Boost 1.90/ament API removals). The **real** VIO runs in the pinned Jazzy container — that's scene 2, measured, deterministic, reproducible in front of you.
+- *"Why is the bound so much bigger than the error?"* — That's what an integrity bound is: a 95 %+ guarantee, not a best estimate. The dual-k design separates the operational bound from the DAL-C certification allocation.
+- *"What's novel?"* — Not the VIO; the **integrity layer**: derived dual protection level, NEES-proven candor, solution-separation fault detection, characterized inertial fallback and layered aiding — assembled, running, and measured end-to-end.

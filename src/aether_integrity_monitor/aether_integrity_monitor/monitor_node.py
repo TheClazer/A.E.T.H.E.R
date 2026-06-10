@@ -34,12 +34,30 @@ from . import core
 class IntegrityMonitor(Node):
     def __init__(self):
         super().__init__('integrity_monitor')
-        # parameters (overridable from config/integrity.yaml)
+        # parameters (overridable from config/integrity.yaml — replay-rig scales —
+        # or config/integrity_ov.yaml — real-OpenVINS scales: ~10-30 features per
+        # MSCKF update and a covariance that grows on a loop-closure-free traverse)
         self.declare_parameter('k_operational', core.K_OP)
         self.declare_parameter('k_dal_c', core.K_DALC)
         self.declare_parameter('rate_hz', 20.0)
+        self.declare_parameter('n_feat_nominal', float(core.N_NOMINAL))
+        self.declare_parameter('tr_nominal', float(core.TR_NOMINAL))
+        self.declare_parameter('n_feat_degraded', float(core.N_DEGRADED))
+        self.declare_parameter('n_feat_inertial', float(core.N_INERTIAL))
+        self.declare_parameter('n_feat_reacquire', float(core.N_REACQUIRE))
+        self.declare_parameter('debounce_s', float(core.DEBOUNCE_S))
+        self.declare_parameter('tr_rate_max', 0.0)
+        # OpenVINS marginalizes MSCKF features in BURSTS (many updates carry 0),
+        # so the health signal is the max over a short window, not the raw width.
+        # 0.0 = use the raw count (replay rig publishes a steady count).
+        self.declare_parameter('n_feat_window_s', 0.0)
         self.k_op = self.get_parameter('k_operational').value
         self.k_dalc = self.get_parameter('k_dal_c').value
+        self.n_nominal = float(self.get_parameter('n_feat_nominal').value)
+        self.tr_nominal = float(self.get_parameter('tr_nominal').value)
+        self.n_degraded = float(self.get_parameter('n_feat_degraded').value)
+        self.n_feat_window_s = float(self.get_parameter('n_feat_window_s').value)
+        self._feat_hist = []           # (t, n) samples inside the smoothing window
 
         self.sub_odom = self.create_subscription(Odometry, '/ov_msckf/odomimu', self.on_odom, 20)
         self.sub_feat = self.create_subscription(PointCloud2, '/ov_msckf/points_msckf', self.on_feat, 10)
@@ -57,10 +75,15 @@ class IntegrityMonitor(Node):
         self.x_est = None
         self.x_vel = None
         self.x_gt = None
-        self.n_feat = core.N_NOMINAL
+        self.n_feat = self.n_nominal
         self.tr_prev = None
         self.t_last_aiding = self.now()
-        self.sm = core.DegradationStateMachine()
+        self.sm = core.DegradationStateMachine(
+            debounce_s=float(self.get_parameter('debounce_s').value),
+            n_inertial=float(self.get_parameter('n_feat_inertial').value),
+            n_reacquire=float(self.get_parameter('n_feat_reacquire').value),
+            n_degraded=self.n_degraded,
+            tr_rate_max=float(self.get_parameter('tr_rate_max').value))
 
         # solution-separation dead-reckoning channel (re-anchored to VIO)
         self.imu_p = None          # dead-reckoned position (odom frame)
@@ -87,8 +110,16 @@ class IntegrityMonitor(Node):
         self.x_vel = np.array([v.x, v.y, v.z])
 
     def on_feat(self, msg: PointCloud2):
-        self.n_feat = float(msg.width)
-        if self.n_feat >= core.N_DEGRADED:
+        n = float(msg.width)
+        if self.n_feat_window_s > 0.0:
+            t = self.now()
+            self._feat_hist.append((t, n))
+            self._feat_hist = [(ts, v) for ts, v in self._feat_hist
+                               if t - ts <= self.n_feat_window_s]
+            self.n_feat = max(v for _, v in self._feat_hist)
+        else:
+            self.n_feat = n
+        if self.n_feat >= self.n_degraded:
             self.t_last_aiding = self.now()
 
     def on_gt(self, msg: Odometry):
@@ -135,7 +166,8 @@ class IntegrityMonitor(Node):
         semi_major, semi_minor, ell_yaw = core.horizontal_ellipse(self.P_pos, self.k_op)
         hpl = semi_major                      # HPL = k * sqrt(lambda_max)
         hpl_dalc = core.horizontal_pl(self.P_pos, self.k_dalc)
-        trust = core.trust_score(self.n_feat, tr)
+        trust = core.trust_score(self.n_feat, tr,
+                                 n_nominal=self.n_nominal, tr_nominal=self.tr_nominal)
         state = self.sm.update(self.n_feat, tr_rate, t)
 
         nees_val = -1.0
