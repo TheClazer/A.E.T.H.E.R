@@ -1,0 +1,12 @@
+A.E.T.H.E.R drift report  (time-synced, SE(3)-aligned, no scale)
+----------------------------------------------------
+  matched poses             31124
+  path length               202.2 m
+  drift over  10 m seg      0.939 %
+  drift over  20 m seg      0.658 %
+  drift over  40 m seg      0.458 %
+  drift over  80 m seg      0.312 %
+  RMS ATE                   0.202 m
+  terminal error            0.443 m   over 202 m = 0.219 %   (DP7: < 1.5 % / 200 m)
+----------------------------------------------------
+  PASS

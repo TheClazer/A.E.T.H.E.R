@@ -22,7 +22,9 @@ done
 echo "=== [1/3] start OpenVINS + TUM streamers ==="
 ros2 run ov_msckf run_subscribe_msckf "$CFG/estimator_config.yaml" > "$OUT/ov_msckf.log" 2>&1 &
 OV=$!
-python3 /aether/eval/odom_stream_to_tum.py /ov_msckf/odomimu "$OUT/est.txt" > /dev/null 2>&1 &
+# NOTE: this OpenVINS build publishes at the root namespace (probe-verified):
+#   /odomimu /poseimu /points_msckf  — not /ov_msckf/*
+python3 /aether/eval/odom_stream_to_tum.py /odomimu "$OUT/est.txt" > /dev/null 2>&1 &
 S1=$!
 python3 /aether/eval/odom_stream_to_tum.py /aether/ground_truth "$OUT/gt.txt" > /dev/null 2>&1 &
 S2=$!

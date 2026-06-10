@@ -15,6 +15,9 @@ env/
 *.bag
 *.db3
 bags/
+# ... except the small no-image mini bag (GT + IMU) used by the demo/CI rung
+!bags/tunnel_mini/
+!bags/tunnel_mini/**
 results/*.zip
 
 # IDE / OS
