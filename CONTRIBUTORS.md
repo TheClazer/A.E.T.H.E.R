@@ -13,6 +13,10 @@ Integrity algorithm design, testing & verification, demo-day rehearsal
 - Faiz.K @ Honeywell Aerospace
 - Renju Chandrasekharapanicker @ Honeywell Aerospace
 
+## Repository
+
+Honeywell Design-A-Thon (RVCE 2026) — Problem DP7: Autonomous Navigator for GPS-Denied Environments.
+
 ## License
 
 MIT
