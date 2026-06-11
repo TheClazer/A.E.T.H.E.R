@@ -20,10 +20,10 @@
 
 | What | Result | Provenance |
 |---|---|---|
-| **Real VIO drift** — OpenVINS stereo-MSCKF on our 202.2 m Gazebo tunnel flight | **0.219 %** terminal drift (DP7 gate < 1.5 % — **beaten 6.8×**) · RMS ATE 0.202 m | [`results/drift_report.txt`](results/drift_report.txt) |
+| **Real VIO drift** — OpenVINS stereo-MSCKF on our 202.2 m Gazebo tunnel flight | **0.219 %** terminal drift (DP7 gate < 1.5 % — **beaten 6.8×**) · RMS ATE 0.201 m | [`results/drift_report.txt`](results/drift_report.txt) |
 | **Integrity on the real VIO** — same monitor nodes, live on the OpenVINS output | bound covers the true error **97.2 %** of 31,173 verdicts | [`results/integrity_chain.csv`](results/integrity_chain.csv) |
 | **Live integrity rig** — measured in running ROS2, faults injected | coverage **97.6 %** (emergent, seeded) · ANEES **3.05** (χ²₃ target ≈ 3) · detection **1.18 s** | [`results/metrics.csv`](results/metrics.csv), [`docs/figures/measured_*.png`](docs/figures) |
-| **Physics-real 3D flight** — X3 multicopter, rotor forces, closed-loop guidance | full 200 m corridor, centered ±0.58 m, IMU alive (cruise σ 0.287 m/s²) | [`bags/tunnel_mini`](bags/tunnel_mini) (GT+IMU) |
+| **Physics-real 3D flight** — X3 multicopter, rotor forces, closed-loop guidance | full 200 m corridor, centered ±0.58 m, IMU alive (cruise σ 0.287 m/s²) | [`sim/`](sim) + [`src/aether_flight/`](src/aether_flight) — raw rosbag is too large for Git; re-record per the [manual](docs/AETHER_MANUAL_STEPS.pdf) |
 
 Everything reruns deterministically: `docker compose run --rm chain` reproduces the drift report from the committed pipeline.
 
@@ -31,11 +31,13 @@ Everything reruns deterministically: `docker compose run --rm chain` reproduces 
 
 A.E.T.H.E.R is a navigator for a drone that has **no GPS** — a tunnel, a warehouse, under jamming. Standard Visual-Inertial Odometry (VIO) tells you *where you are*; A.E.T.H.E.R adds the layer the aerospace world actually ships and student projects skip: a **live integrity bound** that says **how wrong the answer could be — and knows, within half a second, when it can no longer be trusted**. It is the GNSS-RAIM idea, ported to the vision aid: detect the fault, bound the error, degrade gracefully to inertial, recover.
 
-Built by **Rayyan** &amp; **Ashitha** for the Honeywell **Design-A-Thon (DP7 — Autonomous Navigator for GPS-Denied Environments)**. Design rationale: [`docs/AETHER_BIBLE.pdf`](docs/AETHER_BIBLE.pdf) · build/run guide: [`docs/AETHER_MANUAL_STEPS.pdf`](docs/AETHER_MANUAL_STEPS.pdf) · judge briefing: [`docs/JUDGES.md`](docs/JUDGES.md).
+Built by **Rayyan** &amp; **Ashitha** for the Honeywell **Design-A-Thon (DP7 — Autonomous Navigator for GPS-Denied Environments)**, RVCE 2026. Design rationale: [`docs/AETHER_BIBLE.pdf`](docs/AETHER_BIBLE.pdf) · build/run guide: [`docs/AETHER_MANUAL_STEPS.pdf`](docs/AETHER_MANUAL_STEPS.pdf) · one-page brief: [`docs/JUDGES.md`](docs/JUDGES.md).
 
-## 🎮 For the judges — the 5-minute tour
+> **Status:** complete and reproducible. The full pipeline — flight, real OpenVINS, integrity layer, live interactive demo — is committed and CI-green; every headline number reruns from the repo (`docker compose run --rm chain`). The only thing not in Git is the multi-GB raw flight recording, which the scripts regenerate.
 
-One command per scene (Ubuntu/WSL2; first run auto-builds):
+## 🎮 Run it — the 5-minute tour
+
+One command per scene (Ubuntu/WSL2; first run auto-builds). The interactive `live3d` scene needs a **root** WSL shell on this rig — see [`docs/RUNBOOK.pdf`](docs/RUNBOOK.pdf) for why and the fallback ladder:
 
 ```bash
 ./scripts/judge_demo.sh live3d   # THE SHOWPIECE — Gazebo 3D drone patrolling the tunnel
